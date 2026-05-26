@@ -1,0 +1,11 @@
+{
+  "name": "youtube-spoiler-shield",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A privacy-first Chrome extension that blurs YouTube spoilers based on local keywords.",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {}
+}

@@ -1,0 +1,24 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: #111111;
+  background: #ffffff;
+}
+
+.popup-shell {
+  width: 320px;
+  padding: 16px;
+}
+
+.popup-shell h1 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.status-text {
+  margin: 0;
+  color: #555555;
+  font-size: 13px;
+  line-height: 1.4;
+}
