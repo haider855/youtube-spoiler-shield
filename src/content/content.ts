@@ -6,6 +6,12 @@ namespace SpoilerShieldContent {
     console.info(
       `[YouTube Spoiler Shield] Protection ${settings.enabled ? "enabled" : "disabled"} with ${settings.rules.length} keyword(s).`
     );
+
+    const candidates = findYouTubeCardCandidates();
+
+    console.info(
+      `[YouTube Spoiler Shield] Detected ${candidates.length} YouTube card candidate(s).`
+    );
   }
 
   initializeContentScript().catch((error: unknown) => {
