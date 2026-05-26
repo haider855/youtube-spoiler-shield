@@ -12,7 +12,11 @@
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
-      "js": ["dist/content/content.js"],
+      "js": [
+        "dist/shared/constants.js",
+        "dist/shared/storage.js",
+        "dist/content/content.js"
+      ],
       "css": ["styles/content.css"],
       "run_at": "document_idle"
     }
