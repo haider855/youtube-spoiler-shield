@@ -5,6 +5,7 @@
   "description": "A privacy-first Chrome extension that blurs YouTube spoilers based on local keywords.",
   "scripts": {
     "build": "tsc",
+    "test": "npm run build && node scripts/test-matching.js",
     "watch": "tsc --watch"
   },
   "devDependencies": {
