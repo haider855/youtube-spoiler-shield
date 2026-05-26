@@ -14,14 +14,21 @@ namespace SpoilerShieldContent {
       return;
     }
 
+    const keyword = match.keyword ?? "keyword";
+    const ruleId = match.ruleId ?? "";
+
     card.dataset.spoilerShieldProcessed = "true";
     card.dataset.spoilerShieldBlocked = "true";
-    card.dataset.spoilerShieldRuleId = match.ruleId ?? "";
-    card.dataset.spoilerShieldKeyword = match.keyword ?? "";
+    card.dataset.spoilerShieldRuleId = ruleId;
+    card.dataset.spoilerShieldKeyword = keyword;
     card.style.setProperty("--spoiler-shield-blur", `${settings.blurStrength}px`);
     card.classList.add(BLOCKED_CLASS);
 
-    renderOverlay(card, match.keyword ?? "keyword");
+    if (isAlreadyRendered(card, keyword, ruleId)) {
+      return;
+    }
+
+    renderOverlay(card, keyword, ruleId);
   }
 
   export function unblockCard(card: HTMLElement): void {
@@ -37,13 +44,15 @@ namespace SpoilerShieldContent {
     unblockCard(card);
   }
 
-  function renderOverlay(card: HTMLElement, keyword: string): void {
+  function renderOverlay(card: HTMLElement, keyword: string, ruleId: string): void {
     const overlay = getOrCreateOverlay(card);
     const content = document.createElement("div");
     const title = document.createElement("div");
     const matchText = document.createElement("div");
     const revealButton = document.createElement("button");
 
+    overlay.dataset.spoilerShieldKeyword = keyword;
+    overlay.dataset.spoilerShieldRuleId = ruleId;
     content.className = "spoiler-shield-overlay-content";
     title.className = OVERLAY_TITLE_CLASS;
     title.textContent = "Spoiler blocked";
@@ -88,5 +97,15 @@ namespace SpoilerShieldContent {
 
   function removeOverlay(card: HTMLElement): void {
     findDirectOverlay(card)?.remove();
+  }
+
+  function isAlreadyRendered(card: HTMLElement, keyword: string, ruleId: string): boolean {
+    const overlay = findDirectOverlay(card);
+
+    return Boolean(
+      overlay &&
+        overlay.dataset.spoilerShieldKeyword === keyword &&
+        overlay.dataset.spoilerShieldRuleId === ruleId
+    );
   }
 }

@@ -18,6 +18,7 @@
         "dist/shared/storage.js",
         "dist/content/youtubeCards.js",
         "dist/content/blocker.js",
+        "dist/content/observer.js",
         "dist/content/content.js"
       ],
       "css": ["styles/content.css"],

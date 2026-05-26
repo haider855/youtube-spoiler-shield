@@ -14,11 +14,26 @@ type ChromeRuntime = {
   };
 };
 
+type ChromeStorageChange = {
+  oldValue?: unknown;
+  newValue?: unknown;
+};
+
+type ChromeStorageChangedEvent = {
+  addListener(
+    callback: (
+      changes: Record<string, ChromeStorageChange>,
+      areaName: string
+    ) => void
+  ): void;
+};
+
 declare const chrome:
   | {
       runtime?: ChromeRuntime;
       storage?: {
         local?: ChromeStorageArea;
+        onChanged?: ChromeStorageChangedEvent;
       };
     }
   | undefined;
