@@ -14,8 +14,10 @@
       "matches": ["https://www.youtube.com/*"],
       "js": [
         "dist/shared/constants.js",
+        "dist/shared/matching.js",
         "dist/shared/storage.js",
         "dist/content/youtubeCards.js",
+        "dist/content/blocker.js",
         "dist/content/content.js"
       ],
       "css": ["styles/content.css"],

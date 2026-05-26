@@ -1,3 +1,63 @@
 .spoiler-shield-blocked {
   position: relative;
 }
+
+.spoiler-shield-blocked > *:not(.spoiler-shield-overlay) {
+  filter: blur(var(--spoiler-shield-blur, 8px));
+  pointer-events: none;
+  user-select: none;
+}
+
+.spoiler-shield-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 72px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.78);
+  color: #ffffff;
+  text-align: center;
+}
+
+.spoiler-shield-overlay-content {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.spoiler-shield-overlay-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.spoiler-shield-overlay-match {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.spoiler-shield-reveal-button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #111111;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.spoiler-shield-reveal-button:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
