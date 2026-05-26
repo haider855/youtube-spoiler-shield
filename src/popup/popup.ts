@@ -1,6 +1,10 @@
 namespace SpoilerShieldPopup {
   function initializePopup(): void {
-    // Popup controls will be implemented in a later phase.
+    const statusText = document.querySelector<HTMLElement>(".status-text");
+
+    if (statusText) {
+      statusText.textContent = "Extension popup loaded.";
+    }
   }
 
   initializePopup();
