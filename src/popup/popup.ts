@@ -19,7 +19,11 @@ namespace SpoilerShieldPopup {
     deleteGroupMessage: HTMLParagraphElement;
     deleteGroupCancel: HTMLButtonElement;
     deleteGroupConfirm: HTMLButtonElement;
-    keywordContextMenu: HTMLDivElement;
+    bulkActions: HTMLDivElement;
+    bulkCount: HTMLSpanElement;
+    bulkGroupSelect: HTMLSelectElement;
+    bulkMoveButton: HTMLButtonElement;
+    bulkClearButton: HTMLButtonElement;
     groupsList: HTMLDivElement;
     keywordsList: HTMLDivElement;
   };
@@ -64,7 +68,11 @@ namespace SpoilerShieldPopup {
       deleteGroupMessage: getRequiredElement<HTMLParagraphElement>("delete-group-message"),
       deleteGroupCancel: getRequiredElement<HTMLButtonElement>("delete-group-cancel"),
       deleteGroupConfirm: getRequiredElement<HTMLButtonElement>("delete-group-confirm"),
-      keywordContextMenu: getRequiredElement<HTMLDivElement>("keyword-context-menu"),
+      bulkActions: getRequiredElement<HTMLDivElement>("bulk-actions"),
+      bulkCount: getRequiredElement<HTMLSpanElement>("bulk-count"),
+      bulkGroupSelect: getRequiredElement<HTMLSelectElement>("bulk-group-select"),
+      bulkMoveButton: getRequiredElement<HTMLButtonElement>("bulk-move-btn"),
+      bulkClearButton: getRequiredElement<HTMLButtonElement>("bulk-clear-btn"),
       groupsList: getRequiredElement<HTMLDivElement>("groups-list"),
       keywordsList: getRequiredElement<HTMLDivElement>("keywords-list")
     };
@@ -95,10 +103,18 @@ namespace SpoilerShieldPopup {
       void handleToggleProtection(popupElements);
     });
 
+    popupElements.bulkMoveButton.addEventListener("click", () => {
+      void handleMoveSelectedKeywords(popupElements.bulkGroupSelect.value);
+    });
+
+    popupElements.bulkClearButton.addEventListener("click", () => {
+      clearKeywordSelection(popupElements);
+    });
+
     document.addEventListener("click", (event) => {
       const target = event.target;
 
-      if (!(target instanceof Node) || popupElements.keywordContextMenu.contains(target)) {
+      if (!(target instanceof Node) || popupElements.bulkActions.contains(target)) {
         return;
       }
 
@@ -106,7 +122,7 @@ namespace SpoilerShieldPopup {
     });
 
     document.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape" || popupElements.keywordContextMenu.hidden) {
+      if (event.key !== "Escape" || selectedRuleIds.size === 0) {
         return;
       }
 
@@ -210,6 +226,7 @@ namespace SpoilerShieldPopup {
     renderGroupOptions(popupElements, safeSettings.groups);
     renderGroups(popupElements, safeSettings.groups, safeSettings.rules);
     renderKeywords(popupElements, safeSettings.rules, safeSettings.groups);
+    renderBulkActions(popupElements, safeSettings);
   }
 
   function updateStatus(
@@ -238,7 +255,6 @@ namespace SpoilerShieldPopup {
   ): void {
     if (rules.length === 0) {
       selectedRuleIds.clear();
-      closeKeywordContextMenu(popupElements);
       popupElements.keywordsList.replaceChildren(createEmptyState());
       return;
     }
@@ -370,7 +386,7 @@ namespace SpoilerShieldPopup {
       }
 
       event.preventDefault();
-      handleKeywordContextMenu(event, rule);
+      handleKeywordContextMenu(rule);
     });
 
     chipLeft.append(chipIndex, chipText, chipGroup);
@@ -396,61 +412,26 @@ namespace SpoilerShieldPopup {
     return button;
   }
 
-  function handleKeywordContextMenu(
-    event: MouseEvent,
-    rule: SpoilerShieldShared.SpoilerRule
-  ): void {
+  function handleKeywordContextMenu(rule: SpoilerShieldShared.SpoilerRule): void {
     if (!elements || !currentSettings) {
       return;
     }
 
-    selectedRuleIds.add(rule.id);
+    if (selectedRuleIds.has(rule.id)) {
+      selectedRuleIds.delete(rule.id);
+    } else {
+      selectedRuleIds.add(rule.id);
+    }
+
     renderSettings(elements, currentSettings);
-    openKeywordContextMenu(elements, event.clientX, event.clientY);
-  }
-
-  function openKeywordContextMenu(
-    popupElements: PopupElements,
-    clientX: number,
-    clientY: number
-  ): void {
-    const settings = currentSettings;
-
-    if (!settings) {
-      return;
-    }
-
-    const selectedRules = settings.rules.filter((rule) => selectedRuleIds.has(rule.id));
-
-    if (selectedRules.length === 0) {
-      closeKeywordContextMenu(popupElements);
-      return;
-    }
-
-    popupElements.keywordContextMenu.replaceChildren(
-      createKeywordMenuHeader(selectedRules.length),
-      createKeywordMenuDivider(),
-      createKeywordMenuLabel("Move to group"),
-      ...settings.groups.map((group) => createKeywordMoveButton(group, selectedRules)),
-      createKeywordMenuDivider(),
-      createKeywordClearButton(popupElements)
-    );
-    popupElements.keywordContextMenu.hidden = false;
-    positionKeywordContextMenu(popupElements.keywordContextMenu, clientX, clientY);
-  }
-
-  function closeKeywordContextMenu(popupElements: PopupElements): void {
-    popupElements.keywordContextMenu.hidden = true;
-    popupElements.keywordContextMenu.replaceChildren();
   }
 
   function clearKeywordSelection(popupElements: PopupElements): void {
-    if (selectedRuleIds.size === 0 && popupElements.keywordContextMenu.hidden) {
+    if (selectedRuleIds.size === 0) {
       return;
     }
 
     selectedRuleIds.clear();
-    closeKeywordContextMenu(popupElements);
     renderSettings(popupElements, currentSettings);
   }
 
@@ -464,63 +445,36 @@ namespace SpoilerShieldPopup {
     });
   }
 
-  function createKeywordMenuHeader(selectedCount: number): HTMLDivElement {
-    const header = document.createElement("div");
+  function renderBulkActions(
+    popupElements: PopupElements,
+    settings: SpoilerShieldShared.ShieldSettings
+  ): void {
+    const selectedRules = settings.rules.filter((rule) => selectedRuleIds.has(rule.id));
+    const selectedCount = selectedRules.length;
+    const currentTargetGroupId = popupElements.bulkGroupSelect.value;
+    const availableGroups = settings.groups.filter((group) =>
+      !selectedRules.every((rule) => rule.groupId === group.id)
+    );
+    const options = availableGroups.map((group) => {
+      const option = document.createElement("option");
 
-    header.className = "keyword-menu-header";
-    header.textContent = `${selectedCount} selected`;
+      option.value = group.id;
+      option.textContent = group.name;
 
-    return header;
-  }
-
-  function createKeywordMenuLabel(label: string): HTMLDivElement {
-    const itemLabel = document.createElement("div");
-
-    itemLabel.className = "keyword-menu-label";
-    itemLabel.textContent = label;
-
-    return itemLabel;
-  }
-
-  function createKeywordMenuDivider(): HTMLDivElement {
-    const divider = document.createElement("div");
-
-    divider.className = "keyword-menu-divider";
-
-    return divider;
-  }
-
-  function createKeywordMoveButton(
-    group: SpoilerShieldShared.SpoilerGroup,
-    selectedRules: SpoilerShieldShared.SpoilerRule[]
-  ): HTMLButtonElement {
-    const button = document.createElement("button");
-    const allSelectedAlreadyInGroup = selectedRules.every((rule) => rule.groupId === group.id);
-
-    button.className = "keyword-menu-item";
-    button.type = "button";
-    button.disabled = allSelectedAlreadyInGroup;
-    button.setAttribute("role", "menuitem");
-    button.textContent = group.name;
-    button.addEventListener("click", () => {
-      void handleMoveSelectedKeywords(group.id);
+      return option;
     });
 
-    return button;
-  }
+    popupElements.bulkActions.hidden = selectedCount === 0;
+    popupElements.bulkCount.textContent = `${selectedCount} selected`;
+    popupElements.bulkGroupSelect.replaceChildren(...options);
 
-  function createKeywordClearButton(popupElements: PopupElements): HTMLButtonElement {
-    const button = document.createElement("button");
+    if (availableGroups.some((group) => group.id === currentTargetGroupId)) {
+      popupElements.bulkGroupSelect.value = currentTargetGroupId;
+    }
 
-    button.className = "keyword-menu-item keyword-menu-clear";
-    button.type = "button";
-    button.setAttribute("role", "menuitem");
-    button.textContent = "Clear selection";
-    button.addEventListener("click", () => {
-      clearKeywordSelection(popupElements);
-    });
-
-    return button;
+    popupElements.bulkGroupSelect.disabled = selectedCount === 0 || availableGroups.length === 0;
+    popupElements.bulkMoveButton.disabled = selectedCount === 0 || availableGroups.length === 0;
+    popupElements.bulkClearButton.disabled = selectedCount === 0;
   }
 
   async function handleMoveSelectedKeywords(groupId: string): Promise<void> {
@@ -534,7 +488,6 @@ namespace SpoilerShieldPopup {
 
     setBusy(elements, true);
     setFeedback(elements, "");
-    closeKeywordContextMenu(elements);
 
     try {
       currentSettings = await SpoilerShieldShared.moveRulesToGroup(ruleIds, groupId);
@@ -551,24 +504,6 @@ namespace SpoilerShieldPopup {
     } finally {
       setBusy(elements, false);
     }
-  }
-
-  function positionKeywordContextMenu(
-    menu: HTMLDivElement,
-    clientX: number,
-    clientY: number
-  ): void {
-    const margin = 8;
-
-    menu.style.left = `${clientX}px`;
-    menu.style.top = `${clientY}px`;
-
-    const rect = menu.getBoundingClientRect();
-    const left = Math.min(clientX, window.innerWidth - rect.width - margin);
-    const top = Math.min(clientY, window.innerHeight - rect.height - margin);
-
-    menu.style.left = `${Math.max(margin, left)}px`;
-    menu.style.top = `${Math.max(margin, top)}px`;
   }
 
   async function handleToggleKeyword(ruleId: string, enabled: boolean): Promise<void> {
@@ -715,11 +650,9 @@ namespace SpoilerShieldPopup {
     popupElements.toggle.disabled = busy;
     popupElements.deleteGroupCancel.disabled = busy;
     popupElements.deleteGroupConfirm.disabled = busy;
-    popupElements.keywordContextMenu
-      .querySelectorAll<HTMLButtonElement>("button")
-      .forEach((button) => {
-        button.disabled = busy;
-      });
+    popupElements.bulkGroupSelect.disabled = busy || selectedRuleIds.size === 0 || !hasBulkMoveTarget();
+    popupElements.bulkMoveButton.disabled = busy || selectedRuleIds.size === 0 || !hasBulkMoveTarget();
+    popupElements.bulkClearButton.disabled = busy || selectedRuleIds.size === 0;
     popupElements.groupsList
       .querySelectorAll<HTMLButtonElement>("button")
       .forEach((button) => {
@@ -753,6 +686,22 @@ namespace SpoilerShieldPopup {
     window.setTimeout(() => {
       popupElements.groupInput.classList.remove("error");
     }, 400);
+  }
+
+  function hasBulkMoveTarget(): boolean {
+    if (!currentSettings) {
+      return false;
+    }
+
+    const selectedRules = currentSettings.rules.filter((rule) => selectedRuleIds.has(rule.id));
+
+    if (selectedRules.length === 0) {
+      return false;
+    }
+
+    return currentSettings.groups.some((group) =>
+      !selectedRules.every((rule) => rule.groupId === group.id)
+    );
   }
 
   function isRuleActive(

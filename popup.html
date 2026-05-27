@@ -95,6 +95,16 @@
           <h2 class="section-label" id="keyword-heading">Blocked keywords</h2>
           <span class="keywords-count" id="keywords-count">none</span>
         </div>
+        <div class="bulk-actions" id="bulk-actions" hidden>
+          <span class="bulk-count" id="bulk-count">0 selected</span>
+          <select class="bulk-group-select" id="bulk-group-select" aria-label="Move selected keywords to group"></select>
+          <button class="bulk-move-btn" id="bulk-move-btn" type="button">Move</button>
+          <button class="bulk-clear-btn" id="bulk-clear-btn" type="button" aria-label="Clear keyword selection">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
         <div class="keywords-list" id="keywords-list"></div>
       </section>
 
@@ -116,8 +126,6 @@
           </div>
         </div>
       </div>
-
-      <div class="keyword-context-menu" id="keyword-context-menu" role="menu" hidden></div>
     </main>
 
     <script src="dist/shared/constants.js" defer></script>
