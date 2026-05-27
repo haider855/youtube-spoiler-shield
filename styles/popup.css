@@ -450,6 +450,16 @@ button {
   background: #1a1a1a;
 }
 
+.keyword-chip-paused {
+  border-color: #202020;
+  background: #121212;
+}
+
+.keyword-chip-paused .chip-index,
+.keyword-chip-paused .chip-text {
+  color: #5a5a5a;
+}
+
 .chip-left {
   display: flex;
   min-width: 0;
@@ -474,6 +484,69 @@ button {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.3;
+}
+
+.chip-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip-toggle {
+  position: relative;
+  display: inline-flex;
+  width: 30px;
+  height: 18px;
+  flex: 0 0 auto;
+  align-items: center;
+  cursor: pointer;
+}
+
+.chip-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.chip-toggle-track {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #2a2a2a;
+  border-radius: 999px;
+  background: #202020;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.chip-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #777777;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.chip-toggle input:checked + .chip-toggle-track {
+  border-color: #ff0000;
+  background: #ff0000;
+}
+
+.chip-toggle input:checked + .chip-toggle-track .chip-toggle-thumb {
+  background: #ffffff;
+  transform: translateX(12px);
+}
+
+.chip-toggle input:focus-visible + .chip-toggle-track {
+  outline: 2px solid rgba(255, 0, 0, 0.45);
+  outline-offset: 2px;
 }
 
 .chip-remove {
@@ -538,6 +611,7 @@ button {
 
 .add-btn:disabled,
 .chip-remove:disabled,
+.chip-toggle input:disabled + .chip-toggle-track,
 .toggle input:disabled + .toggle-track {
   cursor: wait;
   opacity: 0.55;

@@ -83,3 +83,71 @@ result = matching.matchTextAgainstRules("No spoilers here", [
 assertNoMatch(result);
 
 console.log("matching tests passed");
+
+const storageContext = {
+  console,
+  crypto: {
+    randomUUID() {
+      return "generated-id";
+    }
+  },
+  chrome: {
+    runtime: {},
+    storage: {
+      local: {
+        get(key, callback) {
+          const result = {};
+          const keys = Array.isArray(key) ? key : [key];
+
+          for (const itemKey of keys) {
+            if (Object.prototype.hasOwnProperty.call(storageState, itemKey)) {
+              result[itemKey] = storageState[itemKey];
+            }
+          }
+
+          callback(result);
+        },
+        set(items, callback) {
+          Object.assign(storageState, items);
+          callback?.();
+        }
+      }
+    }
+  }
+};
+
+const storageState = {
+  spoilerShieldSettings: {
+    enabled: true,
+    blurStrength: 8,
+    rules: [
+      createRule("rule-10", "Dune"),
+      createRule("rule-11", "Eren")
+    ]
+  }
+};
+
+vm.createContext(storageContext);
+vm.runInContext(fs.readFileSync("dist/shared/constants.js", "utf8"), storageContext);
+vm.runInContext(fs.readFileSync("dist/shared/storage.js", "utf8"), storageContext);
+
+const storage = storageContext.SpoilerShieldShared;
+
+assert.ok(storage, "SpoilerShieldShared storage namespace should be available");
+
+storage.setRuleEnabled("rule-10", false)
+  .then((settings) => {
+    assert.equal(settings.rules[0].enabled, false);
+    assert.equal(settings.rules[1].enabled, true);
+    assert.equal(storageState.spoilerShieldSettings.rules[0].enabled, false);
+    return storage.setRuleEnabled("rule-10", true);
+  })
+  .then((settings) => {
+    assert.equal(settings.rules[0].enabled, true);
+    assert.equal(settings.rules[1].enabled, true);
+    console.log("storage tests passed");
+  })
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

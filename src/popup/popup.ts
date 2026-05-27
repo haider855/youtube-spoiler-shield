@@ -133,10 +133,10 @@ namespace SpoilerShieldPopup {
     settings: SpoilerShieldShared.ShieldSettings | undefined
   ): void {
     const safeSettings = settings ?? SpoilerShieldShared.getDefaultSettings();
-    const keywordCount = safeSettings.rules.length;
+    const activeKeywordCount = safeSettings.rules.filter((rule) => rule.enabled).length;
 
     popupElements.toggle.checked = safeSettings.enabled;
-    updateStatus(popupElements, safeSettings.enabled, keywordCount);
+    updateStatus(popupElements, safeSettings.enabled, activeKeywordCount);
     renderKeywords(popupElements, safeSettings.rules);
   }
 
@@ -181,13 +181,17 @@ namespace SpoilerShieldPopup {
     const chipLeft = document.createElement("div");
     const chipIndex = document.createElement("span");
     const chipText = document.createElement("span");
+    const chipActions = document.createElement("div");
+    const ruleToggle = createRuleToggle(rule);
     const removeButton = document.createElement("button");
 
     chip.className = "keyword-chip";
+    chip.classList.toggle("keyword-chip-paused", !rule.enabled);
     chip.dataset.ruleId = rule.id;
     chipLeft.className = "chip-left";
     chipIndex.className = "chip-index";
     chipText.className = "chip-text";
+    chipActions.className = "chip-actions";
     removeButton.className = "chip-remove";
     removeButton.type = "button";
 
@@ -200,9 +204,56 @@ namespace SpoilerShieldPopup {
     });
 
     chipLeft.append(chipIndex, chipText);
-    chip.append(chipLeft, removeButton);
+    chipActions.append(ruleToggle, removeButton);
+    chip.append(chipLeft, chipActions);
 
     return chip;
+  }
+
+  function createRuleToggle(rule: SpoilerShieldShared.SpoilerRule): HTMLLabelElement {
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    const track = document.createElement("span");
+    const thumb = document.createElement("span");
+    const labelText = document.createElement("span");
+
+    label.className = "chip-toggle";
+    input.type = "checkbox";
+    input.checked = rule.enabled;
+    input.setAttribute("aria-label", `${rule.enabled ? "Pause" : "Resume"} ${rule.keyword}`);
+    track.className = "chip-toggle-track";
+    thumb.className = "chip-toggle-thumb";
+    labelText.className = "visually-hidden";
+    labelText.textContent = rule.enabled ? `Pause ${rule.keyword}` : `Resume ${rule.keyword}`;
+
+    input.addEventListener("change", () => {
+      void handleToggleKeyword(rule.id, input.checked);
+    });
+
+    track.append(thumb);
+    label.append(labelText, input, track);
+
+    return label;
+  }
+
+  async function handleToggleKeyword(ruleId: string, enabled: boolean): Promise<void> {
+    if (!elements) {
+      return;
+    }
+
+    setBusy(elements, true);
+    setFeedback(elements, "");
+
+    try {
+      currentSettings = await SpoilerShieldShared.setRuleEnabled(ruleId, enabled);
+      renderSettings(elements, currentSettings);
+      setFeedback(elements, enabled ? "Keyword resumed." : "Keyword paused.", "success");
+    } catch (error) {
+      renderSettings(elements, currentSettings);
+      setFeedback(elements, getErrorMessage(error), "error");
+    } finally {
+      setBusy(elements, false);
+    }
   }
 
   function createEmptyState(): HTMLDivElement {
@@ -225,6 +276,11 @@ namespace SpoilerShieldPopup {
       .querySelectorAll<HTMLButtonElement>("button")
       .forEach((button) => {
         button.disabled = busy;
+      });
+    popupElements.keywordsList
+      .querySelectorAll<HTMLInputElement>("input")
+      .forEach((input) => {
+        input.disabled = busy;
       });
   }
 

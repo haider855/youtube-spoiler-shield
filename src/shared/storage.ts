@@ -79,6 +79,39 @@ namespace SpoilerShieldShared {
     }));
   }
 
+  export async function setRuleEnabled(ruleId: string, enabled: boolean): Promise<ShieldSettings> {
+    const normalizedRuleId = ruleId.trim();
+
+    if (!normalizedRuleId) {
+      throw new Error("Keyword not found.");
+    }
+
+    return updateSettings((settings) => {
+      let foundRule = false;
+      const rules = settings.rules.map((rule) => {
+        if (rule.id !== normalizedRuleId) {
+          return rule;
+        }
+
+        foundRule = true;
+
+        return {
+          ...rule,
+          enabled
+        };
+      });
+
+      if (!foundRule) {
+        throw new Error("Keyword not found.");
+      }
+
+      return {
+        ...settings,
+        rules
+      };
+    });
+  }
+
   export async function setEnabled(enabled: boolean): Promise<ShieldSettings> {
     return updateSettings((settings) => ({
       ...settings,
