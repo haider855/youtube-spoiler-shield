@@ -15,6 +15,7 @@ namespace SpoilerShieldPopup {
     statusDetail: HTMLElement;
     feedbackText: HTMLElement;
     keywordsCount: HTMLElement;
+    selectAllControl: HTMLLabelElement;
     bulkSelectAll: HTMLInputElement;
     deleteGroupDialog: HTMLDivElement;
     deleteGroupMessage: HTMLParagraphElement;
@@ -68,6 +69,7 @@ namespace SpoilerShieldPopup {
       statusDetail: getRequiredElement<HTMLElement>("status-detail"),
       feedbackText: getRequiredElement<HTMLElement>("feedback-text"),
       keywordsCount: getRequiredElement<HTMLElement>("keywords-count"),
+      selectAllControl: getRequiredElement<HTMLLabelElement>("select-all-control"),
       bulkSelectAll: getRequiredElement<HTMLInputElement>("bulk-select-all"),
       deleteGroupDialog: getRequiredElement<HTMLDivElement>("delete-group-dialog"),
       deleteGroupMessage: getRequiredElement<HTMLParagraphElement>("delete-group-message"),
@@ -355,12 +357,14 @@ namespace SpoilerShieldPopup {
     if (rules.length === 0) {
       selectedRuleIds.clear();
       popupElements.keywordsList.replaceChildren(createEmptyState());
+      popupElements.keywordsList.classList.remove("keyword-selection-active");
       return;
     }
 
     popupElements.keywordsList.replaceChildren(
       ...rules.map((rule, index) => createRuleChip(rule, index, groups))
     );
+    popupElements.keywordsList.classList.toggle("keyword-selection-active", isKeywordSelectionActive());
   }
 
   function renderGroupOptions(
@@ -623,10 +627,12 @@ namespace SpoilerShieldPopup {
   ): void {
     const selectedCount = rules.filter((rule) => selectedRuleIds.has(rule.id)).length;
     const allSelected = rules.length > 0 && selectedCount === rules.length;
+    const selectionActive = selectedCount > 0;
 
+    popupElements.selectAllControl.hidden = !selectionActive;
     popupElements.bulkSelectAll.checked = allSelected;
-    popupElements.bulkSelectAll.indeterminate = selectedCount > 0 && !allSelected;
-    popupElements.bulkSelectAll.disabled = rules.length === 0;
+    popupElements.bulkSelectAll.indeterminate = selectionActive && !allSelected;
+    popupElements.bulkSelectAll.disabled = !selectionActive || rules.length === 0;
   }
 
   async function handleMoveSelectedKeywords(groupId: string): Promise<void> {
@@ -857,6 +863,10 @@ namespace SpoilerShieldPopup {
     return currentSettings.groups.some((group) =>
       !selectedRules.every((rule) => rule.groupId === group.id)
     );
+  }
+
+  function isKeywordSelectionActive(): boolean {
+    return selectedRuleIds.size > 0;
   }
 
   function getBackupDateStamp(): string {

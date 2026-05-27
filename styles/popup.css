@@ -567,6 +567,10 @@ button {
   line-height: 1.2;
 }
 
+.select-all-control[hidden] {
+  display: none;
+}
+
 .select-all-checkbox {
   display: inline-grid;
   width: 14px;
@@ -851,7 +855,7 @@ button {
 }
 
 .chip-select {
-  display: inline-grid;
+  display: none;
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
@@ -867,6 +871,10 @@ button {
     background 150ms ease,
     border-color 150ms ease,
     opacity 150ms ease;
+}
+
+.keywords-list.keyword-selection-active .chip-select {
+  display: inline-grid;
 }
 
 .chip-select::before {
