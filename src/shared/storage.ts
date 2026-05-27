@@ -34,6 +34,29 @@ namespace SpoilerShieldShared {
     return nextSettings;
   }
 
+  export function createSettingsBackup(settings: ShieldSettings): SettingsBackup {
+    return {
+      app: "youtube-spoiler-shield",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      settings: sanitizeSettings(settings)
+    };
+  }
+
+  export async function importSettingsBackup(value: unknown): Promise<ShieldSettings> {
+    const backupSettings = getBackupSettings(value);
+
+    if (!backupSettings) {
+      throw new Error("Backup file is not valid.");
+    }
+
+    const safeSettings = sanitizeSettings(backupSettings);
+
+    await saveSettings(safeSettings);
+
+    return safeSettings;
+  }
+
   export async function addRule(
     keyword: string,
     groupId: string = DEFAULT_GROUP_ID
@@ -336,6 +359,31 @@ namespace SpoilerShieldShared {
       groups,
       rules: sanitizeRules(value.rules, groups)
     };
+  }
+
+  function getBackupSettings(value: unknown): unknown {
+    if (!isRecord(value)) {
+      return undefined;
+    }
+
+    if (
+      value.app === "youtube-spoiler-shield" &&
+      value.version === 1 &&
+      "settings" in value
+    ) {
+      return value.settings;
+    }
+
+    if (
+      "enabled" in value ||
+      "blurStrength" in value ||
+      "groups" in value ||
+      "rules" in value
+    ) {
+      return value;
+    }
+
+    return undefined;
   }
 
   function sanitizeBlurStrength(value: unknown): number {

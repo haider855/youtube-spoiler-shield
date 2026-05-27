@@ -226,6 +226,35 @@ storage.setRuleEnabled("rule-10", false)
     assert.equal(duneRule.groupId, "games");
     assert.equal(erenRule.groupId, "games");
     assert.equal(nbaRule.groupId, "sports");
+    const backup = storage.createSettingsBackup(settings);
+
+    assert.equal(backup.app, "youtube-spoiler-shield");
+    assert.equal(backup.version, 1);
+    assert.equal(backup.settings.rules.length, settings.rules.length);
+    return storage.importSettingsBackup({
+      app: "youtube-spoiler-shield",
+      version: 1,
+      exportedAt: "2026-05-27T00:00:00.000Z",
+      settings: {
+        enabled: false,
+        blurStrength: 12,
+        groups: [
+          createGroup("general", "General"),
+          createGroup("books", "Books")
+        ],
+        rules: [
+          createRule("rule-books", "Chapter leak", true, "books")
+        ]
+      }
+    });
+  })
+  .then((settings) => {
+    assert.equal(settings.enabled, false);
+    assert.equal(settings.blurStrength, 12);
+    assert.equal(settings.groups.some((group) => group.id === "books"), true);
+    assert.equal(settings.rules.length, 1);
+    assert.equal(settings.rules[0].keyword, "Chapter leak");
+    assert.equal(settings.rules[0].groupId, "books");
     console.log("storage tests passed");
   })
   .catch((error) => {

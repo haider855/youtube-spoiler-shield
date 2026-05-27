@@ -61,6 +61,13 @@ namespace SpoilerShieldShared {
     rules: SpoilerRule[];
   };
 
+  export type SettingsBackup = {
+    app: "youtube-spoiler-shield";
+    version: 1;
+    exportedAt: string;
+    settings: ShieldSettings;
+  };
+
   export type MatchResult = {
     matched: boolean;
     keyword?: string;

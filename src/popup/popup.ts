@@ -24,6 +24,9 @@ namespace SpoilerShieldPopup {
     bulkGroupSelect: HTMLSelectElement;
     bulkMoveButton: HTMLButtonElement;
     bulkClearButton: HTMLButtonElement;
+    exportBackupButton: HTMLButtonElement;
+    importBackupButton: HTMLButtonElement;
+    backupImportInput: HTMLInputElement;
     groupsList: HTMLDivElement;
     keywordsList: HTMLDivElement;
   };
@@ -73,6 +76,9 @@ namespace SpoilerShieldPopup {
       bulkGroupSelect: getRequiredElement<HTMLSelectElement>("bulk-group-select"),
       bulkMoveButton: getRequiredElement<HTMLButtonElement>("bulk-move-btn"),
       bulkClearButton: getRequiredElement<HTMLButtonElement>("bulk-clear-btn"),
+      exportBackupButton: getRequiredElement<HTMLButtonElement>("export-backup-btn"),
+      importBackupButton: getRequiredElement<HTMLButtonElement>("import-backup-btn"),
+      backupImportInput: getRequiredElement<HTMLInputElement>("backup-import-input"),
       groupsList: getRequiredElement<HTMLDivElement>("groups-list"),
       keywordsList: getRequiredElement<HTMLDivElement>("keywords-list")
     };
@@ -109,6 +115,19 @@ namespace SpoilerShieldPopup {
 
     popupElements.bulkClearButton.addEventListener("click", () => {
       clearKeywordSelection(popupElements);
+    });
+
+    popupElements.exportBackupButton.addEventListener("click", () => {
+      void handleExportBackup(popupElements);
+    });
+
+    popupElements.importBackupButton.addEventListener("click", () => {
+      popupElements.backupImportInput.value = "";
+      popupElements.backupImportInput.click();
+    });
+
+    popupElements.backupImportInput.addEventListener("change", () => {
+      void handleImportBackup(popupElements);
     });
 
     document.addEventListener("click", (event) => {
@@ -208,6 +227,70 @@ namespace SpoilerShieldPopup {
       setFeedback(elements, getErrorMessage(error), "error");
     } finally {
       setBusy(elements, false);
+    }
+  }
+
+  async function handleExportBackup(popupElements: PopupElements): Promise<void> {
+    setBusy(popupElements, true);
+    setFeedback(popupElements, "");
+
+    try {
+      const settings = currentSettings ?? await SpoilerShieldShared.getSettings();
+      const backup = SpoilerShieldShared.createSettingsBackup(settings);
+      const fileName = `youtube-spoiler-shield-backup-${getBackupDateStamp()}.json`;
+      const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], {
+        type: "application/json"
+      }));
+      const downloadLink = document.createElement("a");
+
+      downloadLink.href = url;
+      downloadLink.download = fileName;
+      document.body.append(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      window.setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 0);
+      setFeedback(popupElements, "Backup exported.", "success");
+    } catch (error) {
+      setFeedback(popupElements, getErrorMessage(error), "error");
+    } finally {
+      setBusy(popupElements, false);
+    }
+  }
+
+  async function handleImportBackup(popupElements: PopupElements): Promise<void> {
+    const file = popupElements.backupImportInput.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Import this backup? Current groups and keywords will be replaced."
+    );
+
+    if (!confirmed) {
+      popupElements.backupImportInput.value = "";
+      return;
+    }
+
+    setBusy(popupElements, true);
+    setFeedback(popupElements, "");
+
+    try {
+      const backup = JSON.parse(await file.text()) as unknown;
+
+      currentSettings = await SpoilerShieldShared.importSettingsBackup(backup);
+      selectedRuleIds.clear();
+      renderSettings(popupElements, currentSettings);
+      setFeedback(popupElements, "Backup imported.", "success");
+    } catch (error) {
+      renderSettings(popupElements, currentSettings);
+      setFeedback(popupElements, getImportErrorMessage(error), "error");
+    } finally {
+      popupElements.backupImportInput.value = "";
+      setBusy(popupElements, false);
     }
   }
 
@@ -650,6 +733,8 @@ namespace SpoilerShieldPopup {
     popupElements.toggle.disabled = busy;
     popupElements.deleteGroupCancel.disabled = busy;
     popupElements.deleteGroupConfirm.disabled = busy;
+    popupElements.exportBackupButton.disabled = busy;
+    popupElements.importBackupButton.disabled = busy;
     popupElements.bulkGroupSelect.disabled = busy || selectedRuleIds.size === 0 || !hasBulkMoveTarget();
     popupElements.bulkMoveButton.disabled = busy || selectedRuleIds.size === 0 || !hasBulkMoveTarget();
     popupElements.bulkClearButton.disabled = busy || selectedRuleIds.size === 0;
@@ -702,6 +787,10 @@ namespace SpoilerShieldPopup {
     return currentSettings.groups.some((group) =>
       !selectedRules.every((rule) => rule.groupId === group.id)
     );
+  }
+
+  function getBackupDateStamp(): string {
+    return new Date().toISOString().slice(0, 10);
   }
 
   function isRuleActive(
@@ -762,6 +851,14 @@ namespace SpoilerShieldPopup {
 
   function getErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : "Something went wrong.";
+  }
+
+  function getImportErrorMessage(error: unknown): string {
+    if (error instanceof SyntaxError) {
+      return "Backup file is not valid JSON.";
+    }
+
+    return getErrorMessage(error);
   }
 
   initializePopup().catch((error: unknown) => {
