@@ -17,10 +17,19 @@ namespace SpoilerShieldContent {
     "ytd-video-renderer",
     "ytd-compact-video-renderer",
     "ytd-grid-video-renderer",
+    "ytd-playlist-renderer",
+    "ytd-radio-renderer",
+    "ytd-promoted-video-renderer",
+    "ytd-compact-radio-renderer",
     "ytd-reel-item-renderer",
     "ytd-reel-video-renderer",
     "ytd-rich-grid-media",
     "ytd-rich-grid-slim-media",
+    "ytm-compact-video-renderer",
+    "ytm-video-with-context-renderer",
+    "ytm-rich-item-renderer",
+    "ytm-video-card-renderer",
+    "ytm-compact-playlist-renderer",
     "ytm-shorts-lockup-view-model",
     "ytm-shorts-lockup-view-model-v2",
     "yt-shorts-lockup-view-model",
@@ -33,12 +42,17 @@ namespace SpoilerShieldContent {
     "yt-formatted-string#video-title",
     "yt-formatted-string[role='heading']",
     "#video-title-link",
+    "yt-lockup-metadata-view-model a",
+    ".yt-lockup-metadata-view-model-wiz__title",
+    ".yt-lockup-metadata-view-model__title",
+    "h3.yt-lockup-metadata-view-model-wiz__heading-reset",
     "h2 a",
     "h2",
     "h3 a",
     "h3",
     "a[href*='/watch']",
-    "a[href*='/shorts/']"
+    "a[href*='/shorts/']",
+    "a[href*='/playlist?list=']"
   ];
 
   const CHANNEL_SELECTORS = [
@@ -53,6 +67,9 @@ namespace SpoilerShieldContent {
     "#metadata-line",
     "ytd-video-meta-block",
     ".metadata-snippet-container",
+    "yt-content-metadata-view-model",
+    "yt-lockup-metadata-view-model",
+    ".yt-lockup-metadata-view-model-wiz__metadata",
     "yt-formatted-string[aria-label]"
   ];
 

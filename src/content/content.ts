@@ -1,9 +1,16 @@
 namespace SpoilerShieldContent {
   const INITIAL_SCAN_DELAYS_MS = [0, 500, 1500, 3000, 6000, 10000];
+  const PAGE_UPDATE_SCAN_DELAYS_MS = [0, 250, 750, 1500, 3000];
+  const YOUTUBE_PAGE_UPDATE_EVENTS = [
+    "yt-navigate-finish",
+    "yt-page-data-updated",
+    "yt-page-type-changed"
+  ];
   const BLOCKED_CARD_SELECTOR = ".spoiler-shield-blocked, [data-spoiler-shield-blocked='true']";
 
   let currentSettings = SpoilerShieldShared.getDefaultSettings();
   let latestLocationHref = window.location.href;
+  let pageUpdateScanTimeoutIds: number[] = [];
 
   type ScanResult = {
     blockedCount: number;
@@ -20,6 +27,7 @@ namespace SpoilerShieldContent {
 
     scheduleInitialScans();
     startYouTubeObserver(scheduleScan);
+    listenForYouTubePageUpdates();
     listenForSettingsChanges();
   }
 
@@ -29,6 +37,27 @@ namespace SpoilerShieldContent {
         scheduleScan();
       }, delay);
     }
+  }
+
+  function schedulePageUpdateScans(): void {
+    clearPageUpdateScanTimeouts();
+
+    for (const delay of PAGE_UPDATE_SCAN_DELAYS_MS) {
+      const timeoutId = window.setTimeout(() => {
+        pageUpdateScanTimeoutIds = pageUpdateScanTimeoutIds.filter((id) => id !== timeoutId);
+        scheduleScan();
+      }, delay);
+
+      pageUpdateScanTimeoutIds.push(timeoutId);
+    }
+  }
+
+  function clearPageUpdateScanTimeouts(): void {
+    for (const timeoutId of pageUpdateScanTimeoutIds) {
+      window.clearTimeout(timeoutId);
+    }
+
+    pageUpdateScanTimeoutIds = [];
   }
 
   export function scheduleScan(): void {
@@ -90,6 +119,19 @@ namespace SpoilerShieldContent {
       }
 
       void reloadSettingsAndScan();
+    });
+  }
+
+  function listenForYouTubePageUpdates(): void {
+    for (const eventName of YOUTUBE_PAGE_UPDATE_EVENTS) {
+      document.addEventListener(eventName, schedulePageUpdateScans);
+    }
+
+    window.addEventListener("popstate", schedulePageUpdateScans);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        schedulePageUpdateScans();
+      }
     });
   }
 
