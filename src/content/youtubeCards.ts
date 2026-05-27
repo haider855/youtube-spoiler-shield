@@ -11,6 +11,10 @@ namespace SpoilerShieldContent {
     "ytd-grid-video-renderer",
     "ytd-reel-item-renderer",
     "ytd-rich-grid-media",
+    "ytd-rich-grid-slim-media",
+    "ytm-shorts-lockup-view-model",
+    "ytm-shorts-lockup-view-model-v2",
+    "yt-shorts-lockup-view-model",
     "yt-lockup-view-model"
   ];
 
@@ -19,6 +23,8 @@ namespace SpoilerShieldContent {
     "#video-title",
     "yt-formatted-string#video-title",
     "#video-title-link",
+    "h3 a",
+    "h3",
     "a[href*='/watch']",
     "a[href*='/shorts/']"
   ];
