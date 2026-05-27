@@ -13,10 +13,20 @@ const matching = context.SpoilerShieldShared;
 
 assert.ok(matching, "SpoilerShieldShared namespace should be available");
 
-function createRule(id, keyword, enabled = true) {
+function createRule(id, keyword, enabled = true, groupId = "general") {
   return {
     id,
     keyword,
+    groupId,
+    enabled,
+    createdAt: 1
+  };
+}
+
+function createGroup(id, name, enabled = true) {
+  return {
+    id,
+    name,
     enabled,
     createdAt: 1
   };
@@ -82,6 +92,28 @@ result = matching.matchTextAgainstRules("No spoilers here", [
 ]);
 assertNoMatch(result);
 
+result = matching.matchTextAgainstRules(
+  "Dune ending explained",
+  [
+    createRule("rule-12", "Dune", true, "movies")
+  ],
+  [
+    createGroup("movies", "Movies", false)
+  ]
+);
+assertNoMatch(result);
+
+result = matching.matchTextAgainstRules(
+  "Dune ending explained",
+  [
+    createRule("rule-13", "Dune", true, "movies")
+  ],
+  [
+    createGroup("movies", "Movies")
+  ]
+);
+assertMatch(result, "Dune", "rule-13");
+
 console.log("matching tests passed");
 
 const storageContext = {
@@ -137,6 +169,9 @@ assert.ok(storage, "SpoilerShieldShared storage namespace should be available");
 
 storage.setRuleEnabled("rule-10", false)
   .then((settings) => {
+    assert.equal(settings.groups.length, 4);
+    assert.equal(settings.groups[0].id, "general");
+    assert.equal(settings.rules[0].groupId, "general");
     assert.equal(settings.rules[0].enabled, false);
     assert.equal(settings.rules[1].enabled, true);
     assert.equal(storageState.spoilerShieldSettings.rules[0].enabled, false);
@@ -145,6 +180,16 @@ storage.setRuleEnabled("rule-10", false)
   .then((settings) => {
     assert.equal(settings.rules[0].enabled, true);
     assert.equal(settings.rules[1].enabled, true);
+    return storage.addRule("NBA finals", "sports");
+  })
+  .then((settings) => {
+    assert.equal(settings.rules[2].keyword, "NBA finals");
+    assert.equal(settings.rules[2].groupId, "sports");
+    return storage.setGroupEnabled("sports", false);
+  })
+  .then((settings) => {
+    const sportsGroup = settings.groups.find((group) => group.id === "sports");
+    assert.equal(sportsGroup.enabled, false);
     console.log("storage tests passed");
   })
   .catch((error) => {

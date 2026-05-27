@@ -3,6 +3,7 @@ namespace SpoilerShieldShared {
     return {
       enabled: DEFAULT_SETTINGS.enabled,
       blurStrength: DEFAULT_SETTINGS.blurStrength,
+      groups: cloneDefaultGroups(),
       rules: []
     };
   }
@@ -33,8 +34,12 @@ namespace SpoilerShieldShared {
     return nextSettings;
   }
 
-  export async function addRule(keyword: string): Promise<ShieldSettings> {
+  export async function addRule(
+    keyword: string,
+    groupId: string = DEFAULT_GROUP_ID
+  ): Promise<ShieldSettings> {
     const normalizedKeyword = normalizeKeywordForStorage(keyword);
+    const normalizedGroupId = normalizeGroupId(groupId);
 
     if (!normalizedKeyword) {
       throw new Error("Keyword cannot be empty.");
@@ -45,6 +50,7 @@ namespace SpoilerShieldShared {
     }
 
     return updateSettings((settings) => {
+      const safeGroupId = findGroup(settings.groups, normalizedGroupId)?.id ?? DEFAULT_GROUP_ID;
       const duplicateRule = settings.rules.find(
         (rule) => normalizeKeywordForStorage(rule.keyword).toLowerCase() === normalizedKeyword.toLowerCase()
       );
@@ -64,6 +70,7 @@ namespace SpoilerShieldShared {
           {
             id: createRuleId(),
             keyword: normalizedKeyword,
+            groupId: safeGroupId,
             enabled: true,
             createdAt: Date.now()
           }
@@ -108,6 +115,39 @@ namespace SpoilerShieldShared {
       return {
         ...settings,
         rules
+      };
+    });
+  }
+
+  export async function setGroupEnabled(groupId: string, enabled: boolean): Promise<ShieldSettings> {
+    const normalizedGroupId = normalizeGroupId(groupId);
+
+    if (!normalizedGroupId) {
+      throw new Error("Group not found.");
+    }
+
+    return updateSettings((settings) => {
+      let foundGroup = false;
+      const groups = settings.groups.map((group) => {
+        if (group.id !== normalizedGroupId) {
+          return group;
+        }
+
+        foundGroup = true;
+
+        return {
+          ...group,
+          enabled
+        };
+      });
+
+      if (!foundGroup) {
+        throw new Error("Group not found.");
+      }
+
+      return {
+        ...settings,
+        groups
       };
     });
   }
@@ -172,10 +212,13 @@ namespace SpoilerShieldShared {
       return getDefaultSettings();
     }
 
+    const groups = sanitizeGroups(value.groups);
+
     return {
       enabled: typeof value.enabled === "boolean" ? value.enabled : DEFAULT_SETTINGS.enabled,
       blurStrength: sanitizeBlurStrength(value.blurStrength),
-      rules: sanitizeRules(value.rules)
+      groups,
+      rules: sanitizeRules(value.rules, groups)
     };
   }
 
@@ -187,16 +230,72 @@ namespace SpoilerShieldShared {
     return value;
   }
 
-  function sanitizeRules(value: unknown): SpoilerRule[] {
+  function sanitizeGroups(value: unknown): SpoilerGroup[] {
+    const groups: SpoilerGroup[] = [];
+    const seenIds = new Set<string>();
+    const seenNames = new Set<string>();
+
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        const group = sanitizeGroup(entry);
+
+        if (!group || seenIds.has(group.id) || seenNames.has(group.name.toLowerCase())) {
+          continue;
+        }
+
+        groups.push(group);
+        seenIds.add(group.id);
+        seenNames.add(group.name.toLowerCase());
+      }
+    }
+
+    for (const defaultGroup of DEFAULT_GROUPS) {
+      if (seenIds.has(defaultGroup.id)) {
+        continue;
+      }
+
+      groups.push({ ...defaultGroup });
+      seenIds.add(defaultGroup.id);
+    }
+
+    return groups;
+  }
+
+  function sanitizeGroup(value: unknown): SpoilerGroup | undefined {
+    if (!isRecord(value)) {
+      return undefined;
+    }
+
+    const id = typeof value.id === "string" ? normalizeGroupId(value.id) : "";
+    const name = typeof value.name === "string"
+      ? normalizeGroupName(value.name)
+      : "";
+
+    if (!id || !name) {
+      return undefined;
+    }
+
+    return {
+      id,
+      name,
+      enabled: typeof value.enabled === "boolean" ? value.enabled : true,
+      createdAt: typeof value.createdAt === "number" && Number.isFinite(value.createdAt)
+        ? value.createdAt
+        : Date.now()
+    };
+  }
+
+  function sanitizeRules(value: unknown, groups: SpoilerGroup[]): SpoilerRule[] {
     if (!Array.isArray(value)) {
       return [];
     }
 
     const rules: SpoilerRule[] = [];
     const seenKeywords = new Set<string>();
+    const groupIds = new Set(groups.map((group) => group.id));
 
     for (const entry of value) {
-      const rule = sanitizeRule(entry);
+      const rule = sanitizeRule(entry, groupIds);
 
       if (!rule) {
         continue;
@@ -219,7 +318,7 @@ namespace SpoilerShieldShared {
     return rules;
   }
 
-  function sanitizeRule(value: unknown): SpoilerRule | undefined {
+  function sanitizeRule(value: unknown, groupIds: Set<string>): SpoilerRule | undefined {
     if (!isRecord(value)) {
       return undefined;
     }
@@ -232,9 +331,14 @@ namespace SpoilerShieldShared {
       return undefined;
     }
 
+    const groupId = typeof value.groupId === "string" && groupIds.has(normalizeGroupId(value.groupId))
+      ? normalizeGroupId(value.groupId)
+      : DEFAULT_GROUP_ID;
+
     return {
       id: typeof value.id === "string" && value.id.trim() ? value.id : createRuleId(),
       keyword,
+      groupId,
       enabled: typeof value.enabled === "boolean" ? value.enabled : true,
       createdAt: typeof value.createdAt === "number" && Number.isFinite(value.createdAt)
         ? value.createdAt
@@ -244,6 +348,22 @@ namespace SpoilerShieldShared {
 
   function normalizeKeywordForStorage(value: string): string {
     return value.replace(/\s+/g, " ").trim();
+  }
+
+  function normalizeGroupName(value: string): string {
+    return value.replace(/\s+/g, " ").trim().slice(0, MAX_GROUP_NAME_LENGTH);
+  }
+
+  function normalizeGroupId(value: string): string {
+    return value.trim().replace(/\s+/g, "-").toLowerCase();
+  }
+
+  function cloneDefaultGroups(): SpoilerGroup[] {
+    return DEFAULT_GROUPS.map((group) => ({ ...group }));
+  }
+
+  function findGroup(groups: SpoilerGroup[], groupId: string): SpoilerGroup | undefined {
+    return groups.find((group) => group.id === groupId);
   }
 
   function createRuleId(): string {

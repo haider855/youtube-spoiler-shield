@@ -56,7 +56,11 @@ namespace SpoilerShieldContent {
         continue;
       }
 
-      const match = SpoilerShieldShared.matchTextAgainstRules(candidate.text, settings.rules);
+      const match = SpoilerShieldShared.matchTextAgainstRules(
+        candidate.text,
+        settings.rules,
+        settings.groups
+      );
 
       if (match.matched) {
         blockCard(candidate.element, match, settings, candidate.kind);

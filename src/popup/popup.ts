@@ -2,6 +2,7 @@ namespace SpoilerShieldPopup {
   type PopupElements = {
     form: HTMLFormElement;
     input: HTMLInputElement;
+    groupSelect: HTMLSelectElement;
     addButton: HTMLButtonElement;
     toggle: HTMLInputElement;
     statusBar: HTMLElement;
@@ -11,6 +12,7 @@ namespace SpoilerShieldPopup {
     statusDetail: HTMLElement;
     feedbackText: HTMLElement;
     keywordsCount: HTMLElement;
+    groupsList: HTMLDivElement;
     keywordsList: HTMLDivElement;
   };
 
@@ -36,6 +38,7 @@ namespace SpoilerShieldPopup {
     return {
       form: getRequiredElement<HTMLFormElement>("keyword-form"),
       input: getRequiredElement<HTMLInputElement>("keyword-input"),
+      groupSelect: getRequiredElement<HTMLSelectElement>("keyword-group-select"),
       addButton: getRequiredElement<HTMLButtonElement>("add-btn"),
       toggle: getRequiredElement<HTMLInputElement>("protection-toggle"),
       statusBar: getRequiredElement<HTMLElement>("status-bar"),
@@ -45,6 +48,7 @@ namespace SpoilerShieldPopup {
       statusDetail: getRequiredElement<HTMLElement>("status-detail"),
       feedbackText: getRequiredElement<HTMLElement>("feedback-text"),
       keywordsCount: getRequiredElement<HTMLElement>("keywords-count"),
+      groupsList: getRequiredElement<HTMLDivElement>("groups-list"),
       keywordsList: getRequiredElement<HTMLDivElement>("keywords-list")
     };
   }
@@ -72,12 +76,13 @@ namespace SpoilerShieldPopup {
 
   async function handleAddKeyword(popupElements: PopupElements): Promise<void> {
     const keyword = popupElements.input.value;
+    const groupId = popupElements.groupSelect.value;
 
     setBusy(popupElements, true);
     setFeedback(popupElements, "");
 
     try {
-      currentSettings = await SpoilerShieldShared.addRule(keyword);
+      currentSettings = await SpoilerShieldShared.addRule(keyword, groupId);
       popupElements.input.value = "";
       renderSettings(popupElements, currentSettings);
       setFeedback(popupElements, "Keyword added.", "success");
@@ -133,11 +138,15 @@ namespace SpoilerShieldPopup {
     settings: SpoilerShieldShared.ShieldSettings | undefined
   ): void {
     const safeSettings = settings ?? SpoilerShieldShared.getDefaultSettings();
-    const activeKeywordCount = safeSettings.rules.filter((rule) => rule.enabled).length;
+    const activeKeywordCount = safeSettings.rules.filter((rule) =>
+      isRuleActive(rule, safeSettings.groups)
+    ).length;
 
     popupElements.toggle.checked = safeSettings.enabled;
     updateStatus(popupElements, safeSettings.enabled, activeKeywordCount);
-    renderKeywords(popupElements, safeSettings.rules);
+    renderGroupOptions(popupElements, safeSettings.groups);
+    renderGroups(popupElements, safeSettings.groups, safeSettings.rules);
+    renderKeywords(popupElements, safeSettings.rules, safeSettings.groups);
   }
 
   function updateStatus(
@@ -161,7 +170,8 @@ namespace SpoilerShieldPopup {
 
   function renderKeywords(
     popupElements: PopupElements,
-    rules: SpoilerShieldShared.SpoilerRule[]
+    rules: SpoilerShieldShared.SpoilerRule[],
+    groups: SpoilerShieldShared.SpoilerGroup[]
   ): void {
     if (rules.length === 0) {
       popupElements.keywordsList.replaceChildren(createEmptyState());
@@ -169,41 +179,110 @@ namespace SpoilerShieldPopup {
     }
 
     popupElements.keywordsList.replaceChildren(
-      ...rules.map((rule, index) => createRuleChip(rule, index))
+      ...rules.map((rule, index) => createRuleChip(rule, index, groups))
     );
+  }
+
+  function renderGroupOptions(
+    popupElements: PopupElements,
+    groups: SpoilerShieldShared.SpoilerGroup[]
+  ): void {
+    const selectedGroupId = popupElements.groupSelect.value || SpoilerShieldShared.DEFAULT_GROUP_ID;
+    const options = groups.map((group) => {
+      const option = document.createElement("option");
+
+      option.value = group.id;
+      option.textContent = group.name;
+
+      return option;
+    });
+
+    popupElements.groupSelect.replaceChildren(...options);
+    popupElements.groupSelect.value = groups.some((group) => group.id === selectedGroupId)
+      ? selectedGroupId
+      : SpoilerShieldShared.DEFAULT_GROUP_ID;
+  }
+
+  function renderGroups(
+    popupElements: PopupElements,
+    groups: SpoilerShieldShared.SpoilerGroup[],
+    rules: SpoilerShieldShared.SpoilerRule[]
+  ): void {
+    popupElements.groupsList.replaceChildren(
+      ...groups.map((group) => createGroupControl(group, rules))
+    );
+  }
+
+  function createGroupControl(
+    group: SpoilerShieldShared.SpoilerGroup,
+    rules: SpoilerShieldShared.SpoilerRule[]
+  ): HTMLDivElement {
+    const groupControl = document.createElement("div");
+    const groupInfo = document.createElement("div");
+    const groupName = document.createElement("span");
+    const groupCount = document.createElement("span");
+    const groupToggle = document.createElement("button");
+    const ruleCount = rules.filter((rule) => rule.groupId === group.id).length;
+    const nextEnabled = !group.enabled;
+
+    groupControl.className = "group-control";
+    groupControl.classList.toggle("group-control-paused", !group.enabled);
+    groupInfo.className = "group-info";
+    groupName.className = "group-name";
+    groupName.textContent = group.name;
+    groupCount.className = "group-count";
+    groupCount.textContent = `${ruleCount} keyword${ruleCount === 1 ? "" : "s"}`;
+    groupToggle.className = "group-toggle";
+    groupToggle.type = "button";
+    groupToggle.setAttribute("aria-label", `${group.enabled ? "Pause" : "Resume"} ${group.name} group`);
+    groupToggle.setAttribute("title", group.enabled ? "Pause group" : "Resume group");
+    groupToggle.innerHTML = group.enabled ? getPauseIconSvg() : getPlayIconSvg();
+    groupToggle.addEventListener("click", () => {
+      void handleToggleGroup(group.id, nextEnabled);
+    });
+
+    groupInfo.append(groupName, groupCount);
+    groupControl.append(groupInfo, groupToggle);
+
+    return groupControl;
   }
 
   function createRuleChip(
     rule: SpoilerShieldShared.SpoilerRule,
-    index: number
+    index: number,
+    groups: SpoilerShieldShared.SpoilerGroup[]
   ): HTMLDivElement {
     const chip = document.createElement("div");
     const chipLeft = document.createElement("div");
     const chipIndex = document.createElement("span");
     const chipText = document.createElement("span");
+    const chipGroup = document.createElement("span");
     const chipActions = document.createElement("div");
     const ruleToggle = createRuleToggle(rule);
     const removeButton = document.createElement("button");
+    const group = getRuleGroup(rule, groups);
 
     chip.className = "keyword-chip";
-    chip.classList.toggle("keyword-chip-paused", !rule.enabled);
+    chip.classList.toggle("keyword-chip-paused", !isRuleActive(rule, groups));
     chip.dataset.ruleId = rule.id;
     chipLeft.className = "chip-left";
     chipIndex.className = "chip-index";
     chipText.className = "chip-text";
+    chipGroup.className = "chip-group";
     chipActions.className = "chip-actions";
     removeButton.className = "chip-remove";
     removeButton.type = "button";
 
     chipIndex.textContent = String(index + 1).padStart(2, "0");
     chipText.textContent = rule.keyword;
+    chipGroup.textContent = group.name;
     removeButton.setAttribute("aria-label", `Remove ${rule.keyword}`);
     removeButton.innerHTML = getCloseIconSvg();
     removeButton.addEventListener("click", () => {
       void handleRemoveKeyword(rule.id);
     });
 
-    chipLeft.append(chipIndex, chipText);
+    chipLeft.append(chipIndex, chipText, chipGroup);
     chipActions.append(ruleToggle, removeButton);
     chip.append(chipLeft, chipActions);
 
@@ -246,6 +325,26 @@ namespace SpoilerShieldPopup {
     }
   }
 
+  async function handleToggleGroup(groupId: string, enabled: boolean): Promise<void> {
+    if (!elements) {
+      return;
+    }
+
+    setBusy(elements, true);
+    setFeedback(elements, "");
+
+    try {
+      currentSettings = await SpoilerShieldShared.setGroupEnabled(groupId, enabled);
+      renderSettings(elements, currentSettings);
+      setFeedback(elements, enabled ? "Group resumed." : "Group paused.", "success");
+    } catch (error) {
+      renderSettings(elements, currentSettings);
+      setFeedback(elements, getErrorMessage(error), "error");
+    } finally {
+      setBusy(elements, false);
+    }
+  }
+
   function createEmptyState(): HTMLDivElement {
     const emptyState = document.createElement("div");
     const emptyText = document.createElement("span");
@@ -261,7 +360,13 @@ namespace SpoilerShieldPopup {
   function setBusy(popupElements: PopupElements, busy: boolean): void {
     popupElements.statusBar.setAttribute("aria-busy", String(busy));
     popupElements.addButton.disabled = busy;
+    popupElements.groupSelect.disabled = busy;
     popupElements.toggle.disabled = busy;
+    popupElements.groupsList
+      .querySelectorAll<HTMLButtonElement>("button")
+      .forEach((button) => {
+        button.disabled = busy;
+      });
     popupElements.keywordsList
       .querySelectorAll<HTMLButtonElement>("button")
       .forEach((button) => {
@@ -283,6 +388,29 @@ namespace SpoilerShieldPopup {
     window.setTimeout(() => {
       popupElements.input.classList.remove("error");
     }, 400);
+  }
+
+  function isRuleActive(
+    rule: SpoilerShieldShared.SpoilerRule,
+    groups: SpoilerShieldShared.SpoilerGroup[]
+  ): boolean {
+    if (!rule.enabled) {
+      return false;
+    }
+
+    return getRuleGroup(rule, groups).enabled;
+  }
+
+  function getRuleGroup(
+    rule: SpoilerShieldShared.SpoilerRule,
+    groups: SpoilerShieldShared.SpoilerGroup[]
+  ): SpoilerShieldShared.SpoilerGroup {
+    return groups.find((group) => group.id === rule.groupId) ?? groups[0] ?? {
+      id: SpoilerShieldShared.DEFAULT_GROUP_ID,
+      name: "General",
+      enabled: true,
+      createdAt: 0
+    };
   }
 
   function getCloseIconSvg(): string {

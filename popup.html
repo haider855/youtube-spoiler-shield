@@ -41,6 +41,7 @@
 
       <form class="section keyword-form" id="keyword-form">
         <label class="section-label" for="keyword-input">Add keyword</label>
+        <select class="group-select" id="keyword-group-select" aria-label="Keyword group"></select>
         <div class="input-row">
           <input
             class="keyword-input"
@@ -60,6 +61,15 @@
         </div>
         <p class="feedback-text" id="feedback-text" role="status" aria-live="polite"></p>
       </form>
+
+      <div class="divider" aria-hidden="true"></div>
+
+      <section class="groups-section" aria-labelledby="groups-heading">
+        <div class="groups-header">
+          <h2 class="section-label" id="groups-heading">Keyword groups</h2>
+        </div>
+        <div class="groups-list" id="groups-list"></div>
+      </section>
 
       <div class="divider" aria-hidden="true"></div>
 

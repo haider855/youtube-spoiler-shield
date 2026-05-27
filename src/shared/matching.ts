@@ -11,15 +11,20 @@ namespace SpoilerShieldShared {
     return { matched: false };
   }
 
-  export function matchTextAgainstRules(text: string, rules: SpoilerRule[]): MatchResult {
+  export function matchTextAgainstRules(
+    text: string,
+    rules: SpoilerRule[],
+    groups: SpoilerGroup[] = []
+  ): MatchResult {
     const normalizedText = normalizeText(text);
+    const groupsById = new Map(groups.map((group) => [group.id, group]));
 
     if (!normalizedText) {
       return createEmptyMatchResult();
     }
 
     for (const rule of rules) {
-      if (!rule.enabled) {
+      if (!isRuleActive(rule, groupsById)) {
         continue;
       }
 
@@ -39,5 +44,20 @@ namespace SpoilerShieldShared {
     }
 
     return createEmptyMatchResult();
+  }
+
+  function isRuleActive(rule: SpoilerRule, groupsById: Map<string, SpoilerGroup>): boolean {
+    if (!rule.enabled) {
+      return false;
+    }
+
+    if (groupsById.size === 0) {
+      return true;
+    }
+
+    const groupId = rule.groupId || DEFAULT_GROUP_ID;
+    const group = groupsById.get(groupId);
+
+    return group ? group.enabled : false;
   }
 }

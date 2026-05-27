@@ -39,9 +39,17 @@ declare const chrome:
   | undefined;
 
 namespace SpoilerShieldShared {
+  export type SpoilerGroup = {
+    id: string;
+    name: string;
+    enabled: boolean;
+    createdAt: number;
+  };
+
   export type SpoilerRule = {
     id: string;
     keyword: string;
+    groupId: string;
     enabled: boolean;
     createdAt: number;
   };
@@ -49,6 +57,7 @@ namespace SpoilerShieldShared {
   export type ShieldSettings = {
     enabled: boolean;
     blurStrength: number;
+    groups: SpoilerGroup[];
     rules: SpoilerRule[];
   };
 
