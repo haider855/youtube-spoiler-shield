@@ -41,6 +41,9 @@ namespace SpoilerShieldContent {
     card.classList.remove(SHORTS_BLOCKED_CLASS);
     card.dataset.spoilerShieldBlocked = "false";
     delete card.dataset.spoilerShieldKind;
+    delete card.dataset.spoilerShieldRuleId;
+    delete card.dataset.spoilerShieldKeyword;
+    delete card.dataset.spoilerShieldText;
     card.style.removeProperty("--spoiler-shield-blur");
     removeOverlay(card);
   }

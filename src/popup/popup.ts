@@ -15,6 +15,10 @@ namespace SpoilerShieldPopup {
     statusDetail: HTMLElement;
     feedbackText: HTMLElement;
     keywordsCount: HTMLElement;
+    deleteGroupDialog: HTMLDivElement;
+    deleteGroupMessage: HTMLParagraphElement;
+    deleteGroupCancel: HTMLButtonElement;
+    deleteGroupConfirm: HTMLButtonElement;
     groupsList: HTMLDivElement;
     keywordsList: HTMLDivElement;
   };
@@ -54,6 +58,10 @@ namespace SpoilerShieldPopup {
       statusDetail: getRequiredElement<HTMLElement>("status-detail"),
       feedbackText: getRequiredElement<HTMLElement>("feedback-text"),
       keywordsCount: getRequiredElement<HTMLElement>("keywords-count"),
+      deleteGroupDialog: getRequiredElement<HTMLDivElement>("delete-group-dialog"),
+      deleteGroupMessage: getRequiredElement<HTMLParagraphElement>("delete-group-message"),
+      deleteGroupCancel: getRequiredElement<HTMLButtonElement>("delete-group-cancel"),
+      deleteGroupConfirm: getRequiredElement<HTMLButtonElement>("delete-group-confirm"),
       groupsList: getRequiredElement<HTMLDivElement>("groups-list"),
       keywordsList: getRequiredElement<HTMLDivElement>("keywords-list")
     };
@@ -399,6 +407,20 @@ namespace SpoilerShieldPopup {
       return;
     }
 
+    const group = currentSettings?.groups.find((item) => item.id === groupId);
+
+    if (!group) {
+      setFeedback(elements, "Group not found.", "error");
+      return;
+    }
+
+    const confirmed = await confirmGroupDeletion(elements, group);
+
+    if (!confirmed) {
+      setFeedback(elements, "");
+      return;
+    }
+
     setBusy(elements, true);
     setFeedback(elements, "");
 
@@ -412,6 +434,55 @@ namespace SpoilerShieldPopup {
     } finally {
       setBusy(elements, false);
     }
+  }
+
+  function confirmGroupDeletion(
+    popupElements: PopupElements,
+    group: SpoilerShieldShared.SpoilerGroup
+  ): Promise<boolean> {
+    const ruleCount = currentSettings?.rules.filter((rule) => rule.groupId === group.id).length ?? 0;
+    const keywordLabel = ruleCount === 1 ? "keyword" : "keywords";
+
+    popupElements.deleteGroupMessage.textContent =
+      `Delete "${group.name}"? ${ruleCount} ${keywordLabel} will move to General.`;
+    popupElements.deleteGroupDialog.hidden = false;
+
+    return new Promise((resolve) => {
+      const closeDialog = (confirmed: boolean): void => {
+        popupElements.deleteGroupDialog.hidden = true;
+        popupElements.deleteGroupCancel.removeEventListener("click", handleCancel);
+        popupElements.deleteGroupConfirm.removeEventListener("click", handleConfirm);
+        popupElements.deleteGroupDialog.removeEventListener("click", handleBackdropClick);
+        document.removeEventListener("keydown", handleKeydown);
+        resolve(confirmed);
+      };
+
+      const handleCancel = (): void => {
+        closeDialog(false);
+      };
+
+      const handleConfirm = (): void => {
+        closeDialog(true);
+      };
+
+      const handleBackdropClick = (event: MouseEvent): void => {
+        if (event.target === popupElements.deleteGroupDialog) {
+          closeDialog(false);
+        }
+      };
+
+      const handleKeydown = (event: KeyboardEvent): void => {
+        if (event.key === "Escape") {
+          closeDialog(false);
+        }
+      };
+
+      popupElements.deleteGroupCancel.addEventListener("click", handleCancel);
+      popupElements.deleteGroupConfirm.addEventListener("click", handleConfirm);
+      popupElements.deleteGroupDialog.addEventListener("click", handleBackdropClick);
+      document.addEventListener("keydown", handleKeydown);
+      popupElements.deleteGroupCancel.focus();
+    });
   }
 
   function createEmptyState(): HTMLDivElement {
@@ -433,6 +504,8 @@ namespace SpoilerShieldPopup {
     popupElements.groupInput.disabled = busy;
     popupElements.addGroupButton.disabled = busy;
     popupElements.toggle.disabled = busy;
+    popupElements.deleteGroupCancel.disabled = busy;
+    popupElements.deleteGroupConfirm.disabled = busy;
     popupElements.groupsList
       .querySelectorAll<HTMLButtonElement>("button")
       .forEach((button) => {

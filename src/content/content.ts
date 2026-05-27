@@ -1,5 +1,6 @@
 namespace SpoilerShieldContent {
   const INITIAL_SCAN_DELAYS_MS = [0, 500, 1500, 3000, 6000, 10000];
+  const BLOCKED_CARD_SELECTOR = ".spoiler-shield-blocked, [data-spoiler-shield-blocked='true']";
 
   let currentSettings = SpoilerShieldShared.getDefaultSettings();
   let latestLocationHref = window.location.href;
@@ -48,9 +49,13 @@ namespace SpoilerShieldContent {
 
   export function scanCurrentPage(settings: SpoilerShieldShared.ShieldSettings): ScanResult {
     const candidates = findYouTubeCardCandidates();
+    const scannedElements = new Set<HTMLElement>();
     let blockedCount = 0;
 
     for (const candidate of candidates) {
+      scannedElements.add(candidate.element);
+      candidate.element.dataset.spoilerShieldText = candidate.text;
+
       if (!settings.enabled) {
         unblockCard(candidate.element);
         continue;
@@ -69,6 +74,8 @@ namespace SpoilerShieldContent {
         unblockCard(candidate.element);
       }
     }
+
+    reconcileUnscannedBlockedCards(settings, scannedElements);
 
     return {
       blockedCount,
@@ -89,7 +96,41 @@ namespace SpoilerShieldContent {
   async function reloadSettingsAndScan(): Promise<void> {
     currentSettings = await SpoilerShieldShared.getSettings();
     clearPageRevealMarkers();
+    reconcileBlockedCards(currentSettings);
     scheduleScan();
+  }
+
+  function reconcileBlockedCards(settings: SpoilerShieldShared.ShieldSettings): void {
+    reconcileUnscannedBlockedCards(settings, new Set<HTMLElement>());
+  }
+
+  function reconcileUnscannedBlockedCards(
+    settings: SpoilerShieldShared.ShieldSettings,
+    scannedElements: Set<HTMLElement>
+  ): void {
+    document.querySelectorAll<HTMLElement>(BLOCKED_CARD_SELECTOR).forEach((card) => {
+      if (scannedElements.has(card)) {
+        return;
+      }
+
+      if (!settings.enabled) {
+        unblockCard(card);
+        return;
+      }
+
+      const text = card.dataset.spoilerShieldText || extractYouTubeCardText(card);
+      const match = SpoilerShieldShared.matchTextAgainstRules(text, settings.rules, settings.groups);
+
+      if (match.matched) {
+        blockCard(card, match, settings, getStoredCardKind(card));
+      } else {
+        unblockCard(card);
+      }
+    });
+  }
+
+  function getStoredCardKind(card: HTMLElement): YouTubeCardKind {
+    return card.dataset.spoilerShieldKind === "shorts" ? "shorts" : "video";
   }
 
   function clearPageRevealMarkers(): void {
