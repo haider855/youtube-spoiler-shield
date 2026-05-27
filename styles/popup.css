@@ -101,7 +101,14 @@ button {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  background: #ff0000;
+  background: transparent;
+}
+
+.shield-icon img {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
 }
 
 .header-text {

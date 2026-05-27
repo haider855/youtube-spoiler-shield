@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="icon-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#0d0d0d"/>
+    </linearGradient>
+    <linearGradient id="shield-red" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ff2020"/>
+      <stop offset="100%" stop-color="#cc0000"/>
+    </linearGradient>
+    <linearGradient id="shield-shine" x1="0%" y1="0%" x2="0%" y2="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="26" fill="url(#icon-bg)"/>
+  <rect width="128" height="128" rx="26" fill="none" stroke="#2e2e2e" stroke-width="1.5"/>
+  <path d="M64 17L21 36V68C21 91.5 40.5 112 64 120C87.5 112 107 91.5 107 68V36L64 17Z" fill="url(#shield-red)"/>
+  <path d="M64 17L21 36V68C21 91.5 40.5 112 64 120C87.5 112 107 91.5 107 68V36L64 17Z" fill="url(#shield-shine)"/>
+  <path d="M64 21L25 39V68C25 89 43 108 64 116C85 108 103 89 103 68V39L64 21Z" fill="none" stroke="#ffffff" stroke-width="1" stroke-opacity="0.12"/>
+  <path d="M44 68C44 68 50 56 64 56C78 56 84 68 84 68C84 68 78 80 64 80C50 80 44 68 44 68Z" fill="none" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+  <circle cx="64" cy="68" r="7" fill="#ffffff" opacity="0.95"/>
+  <circle cx="64" cy="68" r="4" fill="#cc0000" opacity="0.9"/>
+  <line x1="46" y1="52" x2="82" y2="84" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+  <line x1="46" y1="52" x2="82" y2="84" stroke="#cc0000" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+</svg>
