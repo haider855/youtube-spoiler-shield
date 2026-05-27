@@ -1,6 +1,10 @@
 namespace SpoilerShieldShared {
   export function normalizeText(value: string): string {
-    return value.toLowerCase().replace(/\s+/g, " ").trim();
+    return value
+      .toLowerCase()
+      .replace(/[\p{P}\p{S}]+/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   export function createEmptyMatchResult(): MatchResult {
