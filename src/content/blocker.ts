@@ -1,5 +1,6 @@
 namespace SpoilerShieldContent {
   const BLOCKED_CLASS = "spoiler-shield-blocked";
+  const SHORTS_BLOCKED_CLASS = "spoiler-shield-blocked-shorts";
   const OVERLAY_CLASS = "spoiler-shield-overlay";
   const OVERLAY_TITLE_CLASS = "spoiler-shield-overlay-title";
   const OVERLAY_MATCH_CLASS = "spoiler-shield-overlay-match";
@@ -8,7 +9,8 @@ namespace SpoilerShieldContent {
   export function blockCard(
     card: HTMLElement,
     match: SpoilerShieldShared.MatchResult,
-    settings: SpoilerShieldShared.ShieldSettings
+    settings: SpoilerShieldShared.ShieldSettings,
+    kind: YouTubeCardKind = "video"
   ): void {
     if (!match.matched || card.dataset.spoilerShieldRevealed === "true") {
       return;
@@ -19,10 +21,12 @@ namespace SpoilerShieldContent {
 
     card.dataset.spoilerShieldProcessed = "true";
     card.dataset.spoilerShieldBlocked = "true";
+    card.dataset.spoilerShieldKind = kind;
     card.dataset.spoilerShieldRuleId = ruleId;
     card.dataset.spoilerShieldKeyword = keyword;
     card.style.setProperty("--spoiler-shield-blur", `${settings.blurStrength}px`);
     card.classList.add(BLOCKED_CLASS);
+    card.classList.toggle(SHORTS_BLOCKED_CLASS, kind === "shorts");
 
     if (isAlreadyRendered(card, keyword, ruleId)) {
       return;
@@ -34,7 +38,9 @@ namespace SpoilerShieldContent {
   export function unblockCard(card: HTMLElement): void {
     card.dataset.spoilerShieldProcessed = "true";
     card.classList.remove(BLOCKED_CLASS);
+    card.classList.remove(SHORTS_BLOCKED_CLASS);
     card.dataset.spoilerShieldBlocked = "false";
+    delete card.dataset.spoilerShieldKind;
     card.style.removeProperty("--spoiler-shield-blur");
     removeOverlay(card);
   }

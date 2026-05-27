@@ -2,6 +2,12 @@
   position: relative;
 }
 
+.spoiler-shield-blocked-shorts {
+  overflow: hidden;
+  border-radius: 12px;
+  isolation: isolate;
+}
+
 .spoiler-shield-blocked > *:not(.spoiler-shield-overlay) {
   filter: blur(var(--spoiler-shield-blur, 8px));
   pointer-events: none;
@@ -24,6 +30,12 @@
   text-align: center;
 }
 
+.spoiler-shield-blocked-shorts > .spoiler-shield-overlay {
+  min-height: 100%;
+  border-radius: inherit;
+  padding: 10px;
+}
+
 .spoiler-shield-overlay-content {
   display: flex;
   max-width: 100%;
@@ -32,16 +44,28 @@
   gap: 8px;
 }
 
+.spoiler-shield-blocked-shorts .spoiler-shield-overlay-content {
+  gap: 7px;
+}
+
 .spoiler-shield-overlay-title {
   font-size: 14px;
   font-weight: 700;
   line-height: 1.2;
 }
 
+.spoiler-shield-blocked-shorts .spoiler-shield-overlay-title {
+  font-size: 13px;
+}
+
 .spoiler-shield-overlay-match {
   overflow-wrap: anywhere;
   font-size: 12px;
   line-height: 1.35;
+}
+
+.spoiler-shield-blocked-shorts .spoiler-shield-overlay-match {
+  max-width: 18ch;
 }
 
 .spoiler-shield-reveal-button {
@@ -55,6 +79,11 @@
   font: inherit;
   font-size: 12px;
   font-weight: 700;
+}
+
+.spoiler-shield-blocked-shorts .spoiler-shield-reveal-button {
+  min-height: 28px;
+  padding-inline: 10px;
 }
 
 .spoiler-shield-reveal-button:focus-visible {

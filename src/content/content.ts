@@ -59,7 +59,7 @@ namespace SpoilerShieldContent {
       const match = SpoilerShieldShared.matchTextAgainstRules(candidate.text, settings.rules);
 
       if (match.matched) {
-        blockCard(candidate.element, match, settings);
+        blockCard(candidate.element, match, settings, candidate.kind);
         blockedCount += 1;
       } else {
         unblockCard(candidate.element);

@@ -1,7 +1,15 @@
 namespace SpoilerShieldContent {
   export type YouTubeCardCandidate = {
     element: HTMLElement;
+    kind: YouTubeCardKind;
     text: string;
+  };
+
+  export type YouTubeCardKind = "video" | "shorts";
+
+  type YouTubeCardElement = {
+    element: HTMLElement;
+    kind: YouTubeCardKind;
   };
 
   export const YOUTUBE_CARD_SELECTORS = [
@@ -10,6 +18,7 @@ namespace SpoilerShieldContent {
     "ytd-compact-video-renderer",
     "ytd-grid-video-renderer",
     "ytd-reel-item-renderer",
+    "ytd-reel-video-renderer",
     "ytd-rich-grid-media",
     "ytd-rich-grid-slim-media",
     "ytm-shorts-lockup-view-model",
@@ -22,7 +31,10 @@ namespace SpoilerShieldContent {
     "a#video-title",
     "#video-title",
     "yt-formatted-string#video-title",
+    "yt-formatted-string[role='heading']",
     "#video-title-link",
+    "h2 a",
+    "h2",
     "h3 a",
     "h3",
     "a[href*='/watch']",
@@ -46,9 +58,10 @@ namespace SpoilerShieldContent {
 
   export function findYouTubeCardCandidates(root: ParentNode = document): YouTubeCardCandidate[] {
     return findUniqueCardElements(root)
-      .map((element) => ({
-        element,
-        text: extractYouTubeCardText(element)
+      .map((cardElement) => ({
+        element: cardElement.element,
+        kind: cardElement.kind,
+        text: extractYouTubeCardText(cardElement.element)
       }))
       .filter((candidate) => candidate.text.length > 0);
   }
@@ -61,14 +74,14 @@ namespace SpoilerShieldContent {
     ];
 
     if (textParts.length === 0) {
-      textParts.push(readVisibleText(card));
+      textParts.push(readTextWithAttributes(card));
     }
 
     return compactWhitespace(textParts.join(" "));
   }
 
-  function findUniqueCardElements(root: ParentNode): HTMLElement[] {
-    const cardElements: HTMLElement[] = [];
+  function findUniqueCardElements(root: ParentNode): YouTubeCardElement[] {
+    const cardElements: YouTubeCardElement[] = [];
 
     for (const selector of YOUTUBE_CARD_SELECTORS) {
       root.querySelectorAll(selector).forEach((element) => {
@@ -76,26 +89,52 @@ namespace SpoilerShieldContent {
           return;
         }
 
-        if (cardElements.some((cardElement) => cardElement.contains(element))) {
+        if (cardElements.some((cardElement) => cardElement.element.contains(element))) {
           return;
         }
 
         removeNestedCandidates(cardElements, element);
-        cardElements.push(element);
+        cardElements.push({
+          element,
+          kind: getYouTubeCardKind(element)
+        });
       });
     }
 
     return cardElements;
   }
 
-  function removeNestedCandidates(cardElements: HTMLElement[], element: HTMLElement): void {
+  function removeNestedCandidates(cardElements: YouTubeCardElement[], element: HTMLElement): void {
     for (let index = cardElements.length - 1; index >= 0; index -= 1) {
       const existingElement = cardElements[index];
 
-      if (existingElement && element.contains(existingElement)) {
+      if (existingElement && element.contains(existingElement.element)) {
         cardElements.splice(index, 1);
       }
     }
+  }
+
+  function getYouTubeCardKind(element: HTMLElement): YouTubeCardKind {
+    if (
+      matchesShortsCardSelector(element) ||
+      Boolean(element.closest("ytd-reel-shelf-renderer, ytd-shorts, ytd-shorts-rich-section-renderer")) ||
+      Boolean(element.querySelector("a[href*='/shorts/']"))
+    ) {
+      return "shorts";
+    }
+
+    return "video";
+  }
+
+  function matchesShortsCardSelector(element: HTMLElement): boolean {
+    return element.matches([
+      "ytd-reel-item-renderer",
+      "ytd-reel-video-renderer",
+      "ytd-rich-grid-slim-media",
+      "ytm-shorts-lockup-view-model",
+      "ytm-shorts-lockup-view-model-v2",
+      "yt-shorts-lockup-view-model"
+    ].join(", "));
   }
 
   function collectElementTexts(
@@ -112,13 +151,7 @@ namespace SpoilerShieldContent {
           return;
         }
 
-        const text = includeTextAttributes
-          ? compactWhitespace([
-              readVisibleText(element),
-              element.getAttribute("title") ?? "",
-              element.getAttribute("aria-label") ?? ""
-            ].join(" "))
-          : readVisibleText(element);
+        const text = includeTextAttributes ? readTextWithAttributes(element) : readVisibleText(element);
 
         if (!text || seenText.has(text)) {
           return;
@@ -134,6 +167,14 @@ namespace SpoilerShieldContent {
 
   function readVisibleText(element: HTMLElement): string {
     return compactWhitespace(element.innerText || element.textContent || "");
+  }
+
+  function readTextWithAttributes(element: HTMLElement): string {
+    return compactWhitespace([
+      element.innerText || element.textContent || "",
+      element.getAttribute("aria-label") ?? "",
+      element.getAttribute("title") ?? ""
+    ].join(" "));
   }
 
   function compactWhitespace(value: string): string {
