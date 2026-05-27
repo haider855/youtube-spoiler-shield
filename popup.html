@@ -39,113 +39,133 @@
         </p>
       </section>
 
-      <form class="section keyword-form" id="keyword-form">
-        <label class="section-label" for="keyword-input">Add keyword</label>
-        <select class="group-select" id="keyword-group-select" aria-label="Keyword group"></select>
-        <div class="input-row">
-          <input
-            class="keyword-input"
-            id="keyword-input"
-            type="text"
-            placeholder="e.g. Eren, Dune, UFC 302"
-            maxlength="100"
-            autocomplete="off"
-            spellcheck="false"
-          >
-          <button class="add-btn" id="add-btn" type="submit">
-            <svg class="button-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      <nav class="page-tabs" aria-label="Popup pages">
+        <button class="page-tab active" id="tab-keywords" type="button" data-page-tab="keywords" aria-controls="keywords-page" aria-selected="true">Keywords</button>
+        <button class="page-tab" id="tab-groups" type="button" data-page-tab="groups" aria-controls="groups-page" aria-selected="false">Groups</button>
+        <button class="page-tab" id="tab-settings" type="button" data-page-tab="settings" aria-controls="settings-page" aria-selected="false">Settings</button>
+      </nav>
+
+      <div class="page-panels">
+        <section class="page-panel" id="keywords-page" data-page-panel="keywords" aria-labelledby="tab-keywords">
+          <form class="section keyword-form" id="keyword-form">
+            <label class="section-label" for="keyword-input">Add keyword</label>
+            <select class="group-select" id="keyword-group-select" aria-label="Keyword group"></select>
+            <div class="input-row">
+              <input
+                class="keyword-input"
+                id="keyword-input"
+                type="text"
+                placeholder="e.g. Eren, Dune, UFC 302"
+                maxlength="100"
+                autocomplete="off"
+                spellcheck="false"
+              >
+              <button class="add-btn" id="add-btn" type="submit">
+                <svg class="button-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+                <span>Add</span>
+              </button>
+            </div>
+            <p class="feedback-text" id="feedback-text" role="status" aria-live="polite"></p>
+          </form>
+
+          <div class="divider" aria-hidden="true"></div>
+
+          <section class="keywords-section" aria-labelledby="keyword-heading">
+            <div class="keywords-header">
+              <h2 class="section-label" id="keyword-heading">Blocked keywords</h2>
+              <div class="keywords-header-actions">
+                <label class="select-all-control" id="select-all-control" hidden>
+                  <input class="select-all-checkbox" id="bulk-select-all" type="checkbox">
+                  <span>All</span>
+                </label>
+                <span class="keywords-count" id="keywords-count">none</span>
+              </div>
+            </div>
+            <div class="bulk-actions" id="bulk-actions" hidden>
+              <span class="bulk-count" id="bulk-count">0 selected</span>
+              <select class="bulk-group-select" id="bulk-group-select" aria-label="Move selected keywords to group"></select>
+              <button class="bulk-move-btn" id="bulk-move-btn" type="button">Move</button>
+              <button class="bulk-clear-btn" id="bulk-clear-btn" type="button" aria-label="Clear keyword selection">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+            <div class="keywords-list" id="keywords-list"></div>
+          </section>
+        </section>
+
+        <section class="page-panel" id="groups-page" data-page-panel="groups" aria-labelledby="tab-groups" hidden>
+          <section class="groups-section" aria-labelledby="groups-heading">
+            <div class="groups-header">
+              <h2 class="section-label" id="groups-heading">Keyword groups</h2>
+            </div>
+            <form class="group-form" id="group-form">
+              <input
+                class="group-input"
+                id="group-input"
+                type="text"
+                placeholder="New group"
+                maxlength="30"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="New keyword group"
+              >
+              <button class="group-add-btn" id="add-group-btn" type="submit" aria-label="Add group">
+                <svg class="button-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </form>
+            <div class="groups-list" id="groups-list"></div>
+          </section>
+
+          <div class="divider" aria-hidden="true"></div>
+
+          <section class="group-detail" aria-labelledby="group-detail-title">
+            <div class="group-detail-header">
+              <h2 class="section-label" id="group-detail-title">Group keywords</h2>
+              <span class="group-detail-count" id="group-detail-count">none</span>
+            </div>
+            <div class="group-keywords-list" id="group-keywords-list"></div>
+          </section>
+        </section>
+
+        <section class="page-panel" id="settings-page" data-page-panel="settings" aria-labelledby="tab-settings" hidden>
+          <section class="backup-section" aria-labelledby="backup-heading">
+            <div class="backup-header">
+              <h2 class="section-label" id="backup-heading">Backup</h2>
+            </div>
+            <div class="backup-actions">
+              <button class="backup-btn" id="export-backup-btn" type="button">
+                <svg class="button-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 4V14M12 14L8 10M12 14L16 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M5 16V18C5 19.1046 5.89543 20 7 20H17C18.1046 20 19 19.1046 19 18V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>Export</span>
+              </button>
+              <button class="backup-btn" id="import-backup-btn" type="button">
+                <svg class="button-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 20V10M12 10L8 14M12 10L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M5 8V6C5 4.89543 5.89543 4 7 4H17C18.1046 4 19 4.89543 19 6V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>Import</span>
+              </button>
+              <input class="visually-hidden" id="backup-import-input" type="file" accept="application/json,.json">
+            </div>
+          </section>
+
+          <footer class="popup-footer">
+            <svg class="footer-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 10V8C7 5.23858 9.23858 3 12 3C14.7614 3 17 5.23858 17 8V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M6.5 10H17.5C18.3284 10 19 10.6716 19 11.5V19C19 19.8284 18.3284 20.5 17.5 20.5H6.5C5.67157 20.5 5 19.8284 5 19V11.5C5 10.6716 5.67157 10 6.5 10Z" stroke="currentColor" stroke-width="2"/>
             </svg>
-            <span>Add</span>
-          </button>
-        </div>
-        <p class="feedback-text" id="feedback-text" role="status" aria-live="polite"></p>
-      </form>
-
-      <div class="divider" aria-hidden="true"></div>
-
-      <section class="groups-section" aria-labelledby="groups-heading">
-        <div class="groups-header">
-          <h2 class="section-label" id="groups-heading">Keyword groups</h2>
-        </div>
-        <form class="group-form" id="group-form">
-          <input
-            class="group-input"
-            id="group-input"
-            type="text"
-            placeholder="New group"
-            maxlength="30"
-            autocomplete="off"
-            spellcheck="false"
-            aria-label="New keyword group"
-          >
-          <button class="group-add-btn" id="add-group-btn" type="submit" aria-label="Add group">
-            <svg class="button-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </form>
-        <div class="groups-list" id="groups-list"></div>
-      </section>
-
-      <div class="divider" aria-hidden="true"></div>
-
-      <section class="keywords-section" aria-labelledby="keyword-heading">
-        <div class="keywords-header">
-          <h2 class="section-label" id="keyword-heading">Blocked keywords</h2>
-          <div class="keywords-header-actions">
-            <label class="select-all-control" id="select-all-control" hidden>
-              <input class="select-all-checkbox" id="bulk-select-all" type="checkbox">
-              <span>All</span>
-            </label>
-            <span class="keywords-count" id="keywords-count">none</span>
-          </div>
-        </div>
-        <div class="bulk-actions" id="bulk-actions" hidden>
-          <span class="bulk-count" id="bulk-count">0 selected</span>
-          <select class="bulk-group-select" id="bulk-group-select" aria-label="Move selected keywords to group"></select>
-          <button class="bulk-move-btn" id="bulk-move-btn" type="button">Move</button>
-          <button class="bulk-clear-btn" id="bulk-clear-btn" type="button" aria-label="Clear keyword selection">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
-        <div class="keywords-list" id="keywords-list"></div>
-      </section>
-
-      <div class="divider" aria-hidden="true"></div>
-
-      <section class="backup-section" aria-labelledby="backup-heading">
-        <div class="backup-header">
-          <h2 class="section-label" id="backup-heading">Backup</h2>
-        </div>
-        <div class="backup-actions">
-          <button class="backup-btn" id="export-backup-btn" type="button">
-            <svg class="button-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 4V14M12 14L8 10M12 14L16 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M5 16V18C5 19.1046 5.89543 20 7 20H17C18.1046 20 19 19.1046 19 18V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span>Export</span>
-          </button>
-          <button class="backup-btn" id="import-backup-btn" type="button">
-            <svg class="button-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 20V10M12 10L8 14M12 10L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M5 8V6C5 4.89543 5.89543 4 7 4H17C18.1046 4 19 4.89543 19 6V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span>Import</span>
-          </button>
-          <input class="visually-hidden" id="backup-import-input" type="file" accept="application/json,.json">
-        </div>
-      </section>
-
-      <footer class="popup-footer">
-        <svg class="footer-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7 10V8C7 5.23858 9.23858 3 12 3C14.7614 3 17 5.23858 17 8V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M6.5 10H17.5C18.3284 10 19 10.6716 19 11.5V19C19 19.8284 18.3284 20.5 17.5 20.5H6.5C5.67157 20.5 5 19.8284 5 19V11.5C5 10.6716 5.67157 10 6.5 10Z" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        <span>All rules are stored locally - never leave your device</span>
-      </footer>
+            <span>All rules are stored locally - never leave your device</span>
+          </footer>
+        </section>
+      </div>
 
       <div class="confirm-dialog" id="delete-group-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-group-title" hidden>
         <div class="confirm-panel">

@@ -1,5 +1,9 @@
 namespace SpoilerShieldPopup {
+  type PopupPage = "keywords" | "groups" | "settings";
+
   type PopupElements = {
+    pageTabs: HTMLButtonElement[];
+    pagePanels: HTMLElement[];
     form: HTMLFormElement;
     input: HTMLInputElement;
     groupSelect: HTMLSelectElement;
@@ -30,11 +34,16 @@ namespace SpoilerShieldPopup {
     importBackupButton: HTMLButtonElement;
     backupImportInput: HTMLInputElement;
     groupsList: HTMLDivElement;
+    groupDetailTitle: HTMLElement;
+    groupDetailCount: HTMLElement;
+    groupKeywordsList: HTMLDivElement;
     keywordsList: HTMLDivElement;
   };
 
   let elements: PopupElements | undefined;
   let currentSettings: SpoilerShieldShared.ShieldSettings | undefined;
+  let activePage: PopupPage = "keywords";
+  let selectedGroupId = SpoilerShieldShared.DEFAULT_GROUP_ID;
   const selectedRuleIds = new Set<string>();
 
   async function initializePopup(): Promise<void> {
@@ -54,6 +63,8 @@ namespace SpoilerShieldPopup {
 
   function getPopupElements(): PopupElements {
     return {
+      pageTabs: getRequiredElements<HTMLButtonElement>("[data-page-tab]"),
+      pagePanels: getRequiredElements<HTMLElement>("[data-page-panel]"),
       form: getRequiredElement<HTMLFormElement>("keyword-form"),
       input: getRequiredElement<HTMLInputElement>("keyword-input"),
       groupSelect: getRequiredElement<HTMLSelectElement>("keyword-group-select"),
@@ -84,6 +95,9 @@ namespace SpoilerShieldPopup {
       importBackupButton: getRequiredElement<HTMLButtonElement>("import-backup-btn"),
       backupImportInput: getRequiredElement<HTMLInputElement>("backup-import-input"),
       groupsList: getRequiredElement<HTMLDivElement>("groups-list"),
+      groupDetailTitle: getRequiredElement<HTMLElement>("group-detail-title"),
+      groupDetailCount: getRequiredElement<HTMLElement>("group-detail-count"),
+      groupKeywordsList: getRequiredElement<HTMLDivElement>("group-keywords-list"),
       keywordsList: getRequiredElement<HTMLDivElement>("keywords-list")
     };
   }
@@ -98,7 +112,27 @@ namespace SpoilerShieldPopup {
     return element as TElement;
   }
 
+  function getRequiredElements<TElement extends HTMLElement>(selector: string): TElement[] {
+    const nodeList = Array.from(document.querySelectorAll<TElement>(selector));
+
+    if (nodeList.length === 0) {
+      throw new Error(`Missing popup elements: ${selector}`);
+    }
+
+    return nodeList;
+  }
+
   function bindEvents(popupElements: PopupElements): void {
+    popupElements.pageTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const page = getPopupPage(tab.dataset.pageTab);
+
+        if (page) {
+          handlePageChange(page);
+        }
+      });
+    });
+
     popupElements.form.addEventListener("submit", (event) => {
       event.preventDefault();
       void handleAddKeyword(popupElements);
@@ -197,6 +231,8 @@ namespace SpoilerShieldPopup {
 
     try {
       currentSettings = await SpoilerShieldShared.addGroup(groupName);
+      selectedGroupId = findGroupByName(currentSettings.groups, groupName)?.id ?? selectedGroupId;
+      activePage = "groups";
       popupElements.groupInput.value = "";
       renderSettings(popupElements, currentSettings);
       setFeedback(popupElements, "Group added.", "success");
@@ -300,6 +336,7 @@ namespace SpoilerShieldPopup {
 
       currentSettings = await SpoilerShieldShared.importSettingsBackup(backup);
       selectedRuleIds.clear();
+      selectedGroupId = SpoilerShieldShared.DEFAULT_GROUP_ID;
       renderSettings(popupElements, currentSettings);
       setFeedback(popupElements, "Backup imported.", "success");
     } catch (error) {
@@ -328,6 +365,40 @@ namespace SpoilerShieldPopup {
     renderKeywords(popupElements, safeSettings.rules, safeSettings.groups);
     renderBulkActions(popupElements, safeSettings);
     renderSelectAllControl(popupElements, safeSettings.rules);
+    renderActivePage(popupElements);
+  }
+
+  function renderActivePage(popupElements: PopupElements): void {
+    popupElements.pageTabs.forEach((tab) => {
+      const page = getPopupPage(tab.dataset.pageTab);
+      const isActive = page === activePage;
+
+      tab.classList.toggle("active", isActive);
+      tab.setAttribute("aria-selected", String(isActive));
+    });
+
+    popupElements.pagePanels.forEach((panel) => {
+      panel.hidden = getPopupPage(panel.dataset.pagePanel) !== activePage;
+    });
+  }
+
+  function handlePageChange(page: PopupPage): void {
+    activePage = page;
+
+    if (page !== "keywords") {
+      selectedRuleIds.clear();
+    }
+
+    if (!elements) {
+      return;
+    }
+
+    if (currentSettings) {
+      renderSettings(elements, currentSettings);
+      return;
+    }
+
+    renderActivePage(elements);
   }
 
   function updateStatus(
@@ -392,9 +463,11 @@ namespace SpoilerShieldPopup {
     groups: SpoilerShieldShared.SpoilerGroup[],
     rules: SpoilerShieldShared.SpoilerRule[]
   ): void {
+    ensureSelectedGroup(groups);
     popupElements.groupsList.replaceChildren(
       ...groups.map((group) => createGroupControl(group, rules))
     );
+    renderGroupKeywords(popupElements, groups, rules);
   }
 
   function createGroupControl(
@@ -410,9 +483,14 @@ namespace SpoilerShieldPopup {
     const removeButton = document.createElement("button");
     const ruleCount = rules.filter((rule) => rule.groupId === group.id).length;
     const nextEnabled = !group.enabled;
+    const selected = group.id === selectedGroupId;
 
     groupControl.className = "group-control";
     groupControl.classList.toggle("group-control-paused", !group.enabled);
+    groupControl.classList.toggle("group-control-selected", selected);
+    groupControl.tabIndex = 0;
+    groupControl.setAttribute("role", "button");
+    groupControl.setAttribute("aria-pressed", String(selected));
     groupInfo.className = "group-info";
     groupName.className = "group-name";
     groupName.textContent = group.name;
@@ -435,6 +513,24 @@ namespace SpoilerShieldPopup {
     removeButton.addEventListener("click", () => {
       void handleRemoveGroup(group.id);
     });
+    groupControl.addEventListener("click", (event) => {
+      if (event.target instanceof HTMLElement && event.target.closest("button")) {
+        return;
+      }
+
+      handleSelectGroup(group.id);
+    });
+    groupControl.addEventListener("keydown", (event) => {
+      if (
+        (event.key !== "Enter" && event.key !== " ") ||
+        event.target instanceof HTMLElement && Boolean(event.target.closest("button"))
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      handleSelectGroup(group.id);
+    });
 
     groupInfo.append(groupName, groupCount);
     groupActions.append(groupToggle);
@@ -446,6 +542,69 @@ namespace SpoilerShieldPopup {
     groupControl.append(groupInfo, groupActions);
 
     return groupControl;
+  }
+
+  function renderGroupKeywords(
+    popupElements: PopupElements,
+    groups: SpoilerShieldShared.SpoilerGroup[],
+    rules: SpoilerShieldShared.SpoilerRule[]
+  ): void {
+    const group = getSelectedGroup(groups);
+    const groupRules = rules.filter((rule) => rule.groupId === group.id);
+
+    popupElements.groupDetailTitle.textContent = group.name;
+    popupElements.groupDetailCount.textContent =
+      groupRules.length > 0 ? `${groupRules.length} keyword${groupRules.length === 1 ? "" : "s"}` : "none";
+
+    if (groupRules.length === 0) {
+      popupElements.groupKeywordsList.replaceChildren(createEmptyState("No keywords in this group"));
+      return;
+    }
+
+    popupElements.groupKeywordsList.replaceChildren(
+      ...groupRules.map((rule, index) => createGroupKeywordChip(rule, index, groups))
+    );
+  }
+
+  function createGroupKeywordChip(
+    rule: SpoilerShieldShared.SpoilerRule,
+    index: number,
+    groups: SpoilerShieldShared.SpoilerGroup[]
+  ): HTMLDivElement {
+    const chip = document.createElement("div");
+    const chipLeft = document.createElement("div");
+    const chipIndex = document.createElement("span");
+    const chipText = document.createElement("span");
+    const chipStatus = document.createElement("span");
+    const chipActions = document.createElement("div");
+    const ruleToggle = createRuleToggle(rule);
+    const removeButton = document.createElement("button");
+    const active = isRuleActive(rule, groups);
+
+    chip.className = "keyword-chip group-keyword-chip";
+    chip.classList.toggle("keyword-chip-paused", !active);
+    chipLeft.className = "chip-left";
+    chipIndex.className = "chip-index";
+    chipText.className = "chip-text";
+    chipStatus.className = "group-keyword-status";
+    chipActions.className = "chip-actions";
+    removeButton.className = "chip-remove";
+    removeButton.type = "button";
+
+    chipIndex.textContent = String(index + 1).padStart(2, "0");
+    chipText.textContent = rule.keyword;
+    chipStatus.textContent = active ? "Active" : "Paused";
+    removeButton.setAttribute("aria-label", `Remove ${rule.keyword}`);
+    removeButton.innerHTML = getCloseIconSvg();
+    removeButton.addEventListener("click", () => {
+      void handleRemoveKeyword(rule.id);
+    });
+
+    chipLeft.append(chipIndex, chipText, chipStatus);
+    chipActions.append(ruleToggle, removeButton);
+    chip.append(chipLeft, chipActions);
+
+    return chip;
   }
 
   function createRuleChip(
@@ -728,6 +887,9 @@ namespace SpoilerShieldPopup {
 
     try {
       currentSettings = await SpoilerShieldShared.removeGroup(groupId);
+      if (groupId === selectedGroupId) {
+        selectedGroupId = SpoilerShieldShared.DEFAULT_GROUP_ID;
+      }
       renderSettings(elements, currentSettings);
       setFeedback(elements, "Group deleted. Keywords moved to General.", "success");
     } catch (error) {
@@ -787,13 +949,22 @@ namespace SpoilerShieldPopup {
     });
   }
 
-  function createEmptyState(): HTMLDivElement {
+  function handleSelectGroup(groupId: string): void {
+    if (!elements || !currentSettings || groupId === selectedGroupId) {
+      return;
+    }
+
+    selectedGroupId = groupId;
+    renderSettings(elements, currentSettings);
+  }
+
+  function createEmptyState(message = "No keywords yet - add one above"): HTMLDivElement {
     const emptyState = document.createElement("div");
     const emptyText = document.createElement("span");
 
     emptyState.className = "empty-state";
     emptyState.innerHTML = getShieldOffIconSvg();
-    emptyText.textContent = "No keywords yet - add one above";
+    emptyText.textContent = message;
     emptyState.append(emptyText);
 
     return emptyState;
@@ -801,6 +972,9 @@ namespace SpoilerShieldPopup {
 
   function setBusy(popupElements: PopupElements, busy: boolean): void {
     popupElements.statusBar.setAttribute("aria-busy", String(busy));
+    popupElements.pageTabs.forEach((tab) => {
+      tab.disabled = busy;
+    });
     popupElements.addButton.disabled = busy;
     popupElements.groupSelect.disabled = busy;
     popupElements.groupInput.disabled = busy;
@@ -823,6 +997,11 @@ namespace SpoilerShieldPopup {
       .querySelectorAll<HTMLButtonElement | HTMLInputElement>("button, input")
       .forEach((control) => {
         control.disabled = busy;
+      });
+    popupElements.groupKeywordsList
+      .querySelectorAll<HTMLButtonElement>("button")
+      .forEach((button) => {
+        button.disabled = busy;
       });
   }
 
@@ -867,6 +1046,42 @@ namespace SpoilerShieldPopup {
 
   function isKeywordSelectionActive(): boolean {
     return selectedRuleIds.size > 0;
+  }
+
+  function getPopupPage(value: string | undefined): PopupPage | undefined {
+    if (value === "keywords" || value === "groups" || value === "settings") {
+      return value;
+    }
+
+    return undefined;
+  }
+
+  function ensureSelectedGroup(groups: SpoilerShieldShared.SpoilerGroup[]): void {
+    if (groups.some((group) => group.id === selectedGroupId)) {
+      return;
+    }
+
+    selectedGroupId = groups[0]?.id ?? SpoilerShieldShared.DEFAULT_GROUP_ID;
+  }
+
+  function getSelectedGroup(
+    groups: SpoilerShieldShared.SpoilerGroup[]
+  ): SpoilerShieldShared.SpoilerGroup {
+    return groups.find((group) => group.id === selectedGroupId) ?? groups[0] ?? {
+      id: SpoilerShieldShared.DEFAULT_GROUP_ID,
+      name: "General",
+      enabled: true,
+      createdAt: 0
+    };
+  }
+
+  function findGroupByName(
+    groups: SpoilerShieldShared.SpoilerGroup[],
+    name: string
+  ): SpoilerShieldShared.SpoilerGroup | undefined {
+    const normalizedName = name.trim().toLowerCase();
+
+    return groups.find((group) => group.name.toLowerCase() === normalizedName);
   }
 
   function getBackupDateStamp(): string {
