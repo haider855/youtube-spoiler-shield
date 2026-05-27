@@ -152,6 +152,72 @@ namespace SpoilerShieldShared {
     });
   }
 
+  export async function addGroup(name: string): Promise<ShieldSettings> {
+    const normalizedName = normalizeGroupName(name);
+
+    if (!normalizedName) {
+      throw new Error("Group name cannot be empty.");
+    }
+
+    if (normalizedName.length > MAX_GROUP_NAME_LENGTH) {
+      throw new Error(`Group name must be ${MAX_GROUP_NAME_LENGTH} characters or fewer.`);
+    }
+
+    return updateSettings((settings) => {
+      if (settings.groups.length >= MAX_GROUPS) {
+        throw new Error(`You can save up to ${MAX_GROUPS} keyword groups.`);
+      }
+
+      const duplicateGroup = settings.groups.find(
+        (group) => group.name.toLowerCase() === normalizedName.toLowerCase()
+      );
+
+      if (duplicateGroup) {
+        throw new Error("Group already exists.");
+      }
+
+      return {
+        ...settings,
+        groups: [
+          ...settings.groups,
+          {
+            id: createGroupId(normalizedName, settings.groups),
+            name: normalizedName,
+            enabled: true,
+            createdAt: Date.now()
+          }
+        ]
+      };
+    });
+  }
+
+  export async function removeGroup(groupId: string): Promise<ShieldSettings> {
+    const normalizedGroupId = normalizeGroupId(groupId);
+
+    if (!normalizedGroupId || normalizedGroupId === DEFAULT_GROUP_ID) {
+      throw new Error("General group cannot be deleted.");
+    }
+
+    return updateSettings((settings) => {
+      const groupToRemove = findGroup(settings.groups, normalizedGroupId);
+
+      if (!groupToRemove) {
+        throw new Error("Group not found.");
+      }
+
+      return {
+        ...settings,
+        groups: settings.groups.filter((group) => group.id !== normalizedGroupId),
+        rules: settings.rules.map((rule) => rule.groupId === normalizedGroupId
+          ? {
+              ...rule,
+              groupId: DEFAULT_GROUP_ID
+            }
+          : rule)
+      };
+    });
+  }
+
   export async function setEnabled(enabled: boolean): Promise<ShieldSettings> {
     return updateSettings((settings) => ({
       ...settings,
@@ -231,31 +297,37 @@ namespace SpoilerShieldShared {
   }
 
   function sanitizeGroups(value: unknown): SpoilerGroup[] {
+    if (!Array.isArray(value)) {
+      return cloneDefaultGroups();
+    }
+
     const groups: SpoilerGroup[] = [];
     const seenIds = new Set<string>();
     const seenNames = new Set<string>();
 
-    if (Array.isArray(value)) {
-      for (const entry of value) {
-        const group = sanitizeGroup(entry);
+    for (const entry of value) {
+      const group = sanitizeGroup(entry);
 
-        if (!group || seenIds.has(group.id) || seenNames.has(group.name.toLowerCase())) {
-          continue;
-        }
-
-        groups.push(group);
-        seenIds.add(group.id);
-        seenNames.add(group.name.toLowerCase());
-      }
-    }
-
-    for (const defaultGroup of DEFAULT_GROUPS) {
-      if (seenIds.has(defaultGroup.id)) {
+      if (!group || seenIds.has(group.id) || seenNames.has(group.name.toLowerCase())) {
         continue;
       }
 
-      groups.push({ ...defaultGroup });
-      seenIds.add(defaultGroup.id);
+      groups.push(group);
+      seenIds.add(group.id);
+      seenNames.add(group.name.toLowerCase());
+    }
+
+    if (!seenIds.has(DEFAULT_GROUP_ID)) {
+      groups.unshift({
+        id: DEFAULT_GROUP_ID,
+        name: "General",
+        enabled: true,
+        createdAt: 0
+      });
+    }
+
+    if (groups.length > MAX_GROUPS) {
+      return groups.slice(0, MAX_GROUPS);
     }
 
     return groups;
@@ -271,7 +343,7 @@ namespace SpoilerShieldShared {
       ? normalizeGroupName(value.name)
       : "";
 
-    if (!id || !name) {
+    if (!id || !name || name.length > MAX_GROUP_NAME_LENGTH) {
       return undefined;
     }
 
@@ -351,11 +423,17 @@ namespace SpoilerShieldShared {
   }
 
   function normalizeGroupName(value: string): string {
-    return value.replace(/\s+/g, " ").trim().slice(0, MAX_GROUP_NAME_LENGTH);
+    return value.replace(/\s+/g, " ").trim();
   }
 
   function normalizeGroupId(value: string): string {
-    return value.trim().replace(/\s+/g, "-").toLowerCase();
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/[\p{P}\p{S}]+/gu, "-")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
   }
 
   function cloneDefaultGroups(): SpoilerGroup[] {
@@ -364,6 +442,20 @@ namespace SpoilerShieldShared {
 
   function findGroup(groups: SpoilerGroup[], groupId: string): SpoilerGroup | undefined {
     return groups.find((group) => group.id === groupId);
+  }
+
+  function createGroupId(name: string, groups: SpoilerGroup[]): string {
+    const existingIds = new Set(groups.map((group) => group.id));
+    const baseId = normalizeGroupId(name) || "group";
+    let candidateId = baseId;
+    let suffix = 2;
+
+    while (existingIds.has(candidateId)) {
+      candidateId = `${baseId}-${suffix}`;
+      suffix += 1;
+    }
+
+    return candidateId;
   }
 
   function createRuleId(): string {

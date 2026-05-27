@@ -3,6 +3,7 @@ namespace SpoilerShieldShared {
   export const MAX_KEYWORD_LENGTH = 100;
   export const MAX_RULES = 100;
   export const MAX_GROUP_NAME_LENGTH = 30;
+  export const MAX_GROUPS = 20;
   export const DEFAULT_GROUP_ID = "general";
 
   export const DEFAULT_GROUPS: SpoilerGroup[] = [

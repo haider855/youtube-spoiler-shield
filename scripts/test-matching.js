@@ -190,6 +190,27 @@ storage.setRuleEnabled("rule-10", false)
   .then((settings) => {
     const sportsGroup = settings.groups.find((group) => group.id === "sports");
     assert.equal(sportsGroup.enabled, false);
+    return storage.removeGroup("movies");
+  })
+  .then((settings) => {
+    assert.equal(settings.groups.some((group) => group.id === "movies"), false);
+    return storage.addGroup("Shows");
+  })
+  .then((settings) => {
+    const showsGroup = settings.groups.find((group) => group.id === "shows");
+    assert.equal(showsGroup.name, "Shows");
+    assert.equal(showsGroup.enabled, true);
+    return storage.addRule("Finale", "shows");
+  })
+  .then((settings) => {
+    const finaleRule = settings.rules.find((rule) => rule.keyword === "Finale");
+    assert.equal(finaleRule.groupId, "shows");
+    return storage.removeGroup("shows");
+  })
+  .then((settings) => {
+    const finaleRule = settings.rules.find((rule) => rule.keyword === "Finale");
+    assert.equal(settings.groups.some((group) => group.id === "shows"), false);
+    assert.equal(finaleRule.groupId, "general");
     console.log("storage tests passed");
   })
   .catch((error) => {

@@ -316,7 +316,8 @@ button {
   box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.16);
 }
 
-.keyword-input.error {
+.keyword-input.error,
+.group-input.error {
   border-color: #ff0000;
   animation: input-shake 300ms ease;
 }
@@ -408,6 +409,63 @@ button {
   margin-bottom: 0;
 }
 
+.group-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.group-input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  outline: none;
+  background: #1a1a1a;
+  color: #e5e5e5;
+  font-size: 12px;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease;
+}
+
+.group-input::placeholder {
+  color: #4f4f4f;
+}
+
+.group-input:focus {
+  border-color: #ff0000;
+  box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.16);
+}
+
+.group-add-btn {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: #ff0000;
+  color: #ffffff;
+  transition:
+    background 150ms ease,
+    transform 100ms ease,
+    opacity 150ms ease;
+}
+
+.group-add-btn:hover {
+  background: #cc0000;
+}
+
+.group-add-btn:active {
+  transform: scale(0.97);
+}
+
 .groups-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -465,6 +523,12 @@ button {
 
 .group-control-paused .group-name {
   color: #5a5a5a;
+}
+
+.group-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .keywords-section {
@@ -610,7 +674,8 @@ button {
 }
 
 .chip-toggle,
-.group-toggle {
+.group-toggle,
+.group-remove {
   display: inline-flex;
   width: 24px;
   height: 24px;
@@ -630,7 +695,8 @@ button {
 }
 
 .chip-toggle:hover,
-.group-toggle:hover {
+.group-toggle:hover,
+.group-remove:hover {
   border-color: #ff0000;
   background: #ff0000;
   color: #ffffff;
@@ -642,13 +708,16 @@ button {
 }
 
 .chip-toggle:focus-visible,
-.group-toggle:focus-visible {
+.group-toggle:focus-visible,
+.group-remove:focus-visible,
+.group-add-btn:focus-visible {
   outline: 2px solid rgba(255, 0, 0, 0.45);
   outline-offset: 2px;
 }
 
 .chip-toggle svg,
-.group-toggle svg {
+.group-toggle svg,
+.group-remove svg {
   pointer-events: none;
 }
 
@@ -714,7 +783,10 @@ button {
 
 .add-btn:disabled,
 .group-select:disabled,
+.group-input:disabled,
+.group-add-btn:disabled,
 .group-toggle:disabled,
+.group-remove:disabled,
 .chip-remove:disabled,
 .chip-toggle:disabled,
 .toggle input:disabled + .toggle-track {
