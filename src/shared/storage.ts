@@ -119,6 +119,56 @@ namespace SpoilerShieldShared {
     });
   }
 
+  export async function moveRulesToGroup(
+    ruleIds: string[],
+    groupId: string
+  ): Promise<ShieldSettings> {
+    const normalizedRuleIds = Array.from(
+      new Set(ruleIds.map((ruleId) => ruleId.trim()).filter(Boolean))
+    );
+    const normalizedGroupId = normalizeGroupId(groupId);
+
+    if (normalizedRuleIds.length === 0) {
+      throw new Error("Select at least one keyword.");
+    }
+
+    if (!normalizedGroupId) {
+      throw new Error("Group not found.");
+    }
+
+    return updateSettings((settings) => {
+      const targetGroup = findGroup(settings.groups, normalizedGroupId);
+
+      if (!targetGroup) {
+        throw new Error("Group not found.");
+      }
+
+      const targetRuleIds = new Set(normalizedRuleIds);
+      const foundRuleIds = new Set<string>();
+      const rules = settings.rules.map((rule) => {
+        if (!targetRuleIds.has(rule.id)) {
+          return rule;
+        }
+
+        foundRuleIds.add(rule.id);
+
+        return {
+          ...rule,
+          groupId: targetGroup.id
+        };
+      });
+
+      if (foundRuleIds.size !== normalizedRuleIds.length) {
+        throw new Error("Some keywords were not found.");
+      }
+
+      return {
+        ...settings,
+        rules
+      };
+    });
+  }
+
   export async function setGroupEnabled(groupId: string, enabled: boolean): Promise<ShieldSettings> {
     const normalizedGroupId = normalizeGroupId(groupId);
 

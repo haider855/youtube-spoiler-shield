@@ -19,12 +19,14 @@ namespace SpoilerShieldPopup {
     deleteGroupMessage: HTMLParagraphElement;
     deleteGroupCancel: HTMLButtonElement;
     deleteGroupConfirm: HTMLButtonElement;
+    keywordContextMenu: HTMLDivElement;
     groupsList: HTMLDivElement;
     keywordsList: HTMLDivElement;
   };
 
   let elements: PopupElements | undefined;
   let currentSettings: SpoilerShieldShared.ShieldSettings | undefined;
+  const selectedRuleIds = new Set<string>();
 
   async function initializePopup(): Promise<void> {
     elements = getPopupElements();
@@ -62,6 +64,7 @@ namespace SpoilerShieldPopup {
       deleteGroupMessage: getRequiredElement<HTMLParagraphElement>("delete-group-message"),
       deleteGroupCancel: getRequiredElement<HTMLButtonElement>("delete-group-cancel"),
       deleteGroupConfirm: getRequiredElement<HTMLButtonElement>("delete-group-confirm"),
+      keywordContextMenu: getRequiredElement<HTMLDivElement>("keyword-context-menu"),
       groupsList: getRequiredElement<HTMLDivElement>("groups-list"),
       keywordsList: getRequiredElement<HTMLDivElement>("keywords-list")
     };
@@ -90,6 +93,25 @@ namespace SpoilerShieldPopup {
 
     popupElements.toggle.addEventListener("change", () => {
       void handleToggleProtection(popupElements);
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+
+      if (!(target instanceof Node) || popupElements.keywordContextMenu.contains(target)) {
+        return;
+      }
+
+      clearKeywordSelection(popupElements);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || popupElements.keywordContextMenu.hidden) {
+        return;
+      }
+
+      event.preventDefault();
+      clearKeywordSelection(popupElements);
     });
   }
 
@@ -182,6 +204,7 @@ namespace SpoilerShieldPopup {
       isRuleActive(rule, safeSettings.groups)
     ).length;
 
+    pruneKeywordSelection(safeSettings.rules);
     popupElements.toggle.checked = safeSettings.enabled;
     updateStatus(popupElements, safeSettings.enabled, activeKeywordCount);
     renderGroupOptions(popupElements, safeSettings.groups);
@@ -214,6 +237,8 @@ namespace SpoilerShieldPopup {
     groups: SpoilerShieldShared.SpoilerGroup[]
   ): void {
     if (rules.length === 0) {
+      selectedRuleIds.clear();
+      closeKeywordContextMenu(popupElements);
       popupElements.keywordsList.replaceChildren(createEmptyState());
       return;
     }
@@ -321,6 +346,7 @@ namespace SpoilerShieldPopup {
 
     chip.className = "keyword-chip";
     chip.classList.toggle("keyword-chip-paused", !isRuleActive(rule, groups));
+    chip.classList.toggle("keyword-chip-selected", selectedRuleIds.has(rule.id));
     chip.dataset.ruleId = rule.id;
     chipLeft.className = "chip-left";
     chipIndex.className = "chip-index";
@@ -337,6 +363,14 @@ namespace SpoilerShieldPopup {
     removeButton.innerHTML = getCloseIconSvg();
     removeButton.addEventListener("click", () => {
       void handleRemoveKeyword(rule.id);
+    });
+    chip.addEventListener("contextmenu", (event) => {
+      if (event.target instanceof HTMLElement && event.target.closest("button")) {
+        return;
+      }
+
+      event.preventDefault();
+      handleKeywordContextMenu(event, rule);
     });
 
     chipLeft.append(chipIndex, chipText, chipGroup);
@@ -360,6 +394,181 @@ namespace SpoilerShieldPopup {
     });
 
     return button;
+  }
+
+  function handleKeywordContextMenu(
+    event: MouseEvent,
+    rule: SpoilerShieldShared.SpoilerRule
+  ): void {
+    if (!elements || !currentSettings) {
+      return;
+    }
+
+    selectedRuleIds.add(rule.id);
+    renderSettings(elements, currentSettings);
+    openKeywordContextMenu(elements, event.clientX, event.clientY);
+  }
+
+  function openKeywordContextMenu(
+    popupElements: PopupElements,
+    clientX: number,
+    clientY: number
+  ): void {
+    const settings = currentSettings;
+
+    if (!settings) {
+      return;
+    }
+
+    const selectedRules = settings.rules.filter((rule) => selectedRuleIds.has(rule.id));
+
+    if (selectedRules.length === 0) {
+      closeKeywordContextMenu(popupElements);
+      return;
+    }
+
+    popupElements.keywordContextMenu.replaceChildren(
+      createKeywordMenuHeader(selectedRules.length),
+      createKeywordMenuDivider(),
+      createKeywordMenuLabel("Move to group"),
+      ...settings.groups.map((group) => createKeywordMoveButton(group, selectedRules)),
+      createKeywordMenuDivider(),
+      createKeywordClearButton(popupElements)
+    );
+    popupElements.keywordContextMenu.hidden = false;
+    positionKeywordContextMenu(popupElements.keywordContextMenu, clientX, clientY);
+  }
+
+  function closeKeywordContextMenu(popupElements: PopupElements): void {
+    popupElements.keywordContextMenu.hidden = true;
+    popupElements.keywordContextMenu.replaceChildren();
+  }
+
+  function clearKeywordSelection(popupElements: PopupElements): void {
+    if (selectedRuleIds.size === 0 && popupElements.keywordContextMenu.hidden) {
+      return;
+    }
+
+    selectedRuleIds.clear();
+    closeKeywordContextMenu(popupElements);
+    renderSettings(popupElements, currentSettings);
+  }
+
+  function pruneKeywordSelection(rules: SpoilerShieldShared.SpoilerRule[]): void {
+    const ruleIds = new Set(rules.map((rule) => rule.id));
+
+    selectedRuleIds.forEach((ruleId) => {
+      if (!ruleIds.has(ruleId)) {
+        selectedRuleIds.delete(ruleId);
+      }
+    });
+  }
+
+  function createKeywordMenuHeader(selectedCount: number): HTMLDivElement {
+    const header = document.createElement("div");
+
+    header.className = "keyword-menu-header";
+    header.textContent = `${selectedCount} selected`;
+
+    return header;
+  }
+
+  function createKeywordMenuLabel(label: string): HTMLDivElement {
+    const itemLabel = document.createElement("div");
+
+    itemLabel.className = "keyword-menu-label";
+    itemLabel.textContent = label;
+
+    return itemLabel;
+  }
+
+  function createKeywordMenuDivider(): HTMLDivElement {
+    const divider = document.createElement("div");
+
+    divider.className = "keyword-menu-divider";
+
+    return divider;
+  }
+
+  function createKeywordMoveButton(
+    group: SpoilerShieldShared.SpoilerGroup,
+    selectedRules: SpoilerShieldShared.SpoilerRule[]
+  ): HTMLButtonElement {
+    const button = document.createElement("button");
+    const allSelectedAlreadyInGroup = selectedRules.every((rule) => rule.groupId === group.id);
+
+    button.className = "keyword-menu-item";
+    button.type = "button";
+    button.disabled = allSelectedAlreadyInGroup;
+    button.setAttribute("role", "menuitem");
+    button.textContent = group.name;
+    button.addEventListener("click", () => {
+      void handleMoveSelectedKeywords(group.id);
+    });
+
+    return button;
+  }
+
+  function createKeywordClearButton(popupElements: PopupElements): HTMLButtonElement {
+    const button = document.createElement("button");
+
+    button.className = "keyword-menu-item keyword-menu-clear";
+    button.type = "button";
+    button.setAttribute("role", "menuitem");
+    button.textContent = "Clear selection";
+    button.addEventListener("click", () => {
+      clearKeywordSelection(popupElements);
+    });
+
+    return button;
+  }
+
+  async function handleMoveSelectedKeywords(groupId: string): Promise<void> {
+    if (!elements || !currentSettings) {
+      return;
+    }
+
+    const ruleIds = Array.from(selectedRuleIds);
+    const targetGroup = currentSettings.groups.find((group) => group.id === groupId);
+    const movedCount = ruleIds.length;
+
+    setBusy(elements, true);
+    setFeedback(elements, "");
+    closeKeywordContextMenu(elements);
+
+    try {
+      currentSettings = await SpoilerShieldShared.moveRulesToGroup(ruleIds, groupId);
+      selectedRuleIds.clear();
+      renderSettings(elements, currentSettings);
+      setFeedback(
+        elements,
+        `${movedCount} keyword${movedCount === 1 ? "" : "s"} moved to ${targetGroup?.name ?? "group"}.`,
+        "success"
+      );
+    } catch (error) {
+      renderSettings(elements, currentSettings);
+      setFeedback(elements, getErrorMessage(error), "error");
+    } finally {
+      setBusy(elements, false);
+    }
+  }
+
+  function positionKeywordContextMenu(
+    menu: HTMLDivElement,
+    clientX: number,
+    clientY: number
+  ): void {
+    const margin = 8;
+
+    menu.style.left = `${clientX}px`;
+    menu.style.top = `${clientY}px`;
+
+    const rect = menu.getBoundingClientRect();
+    const left = Math.min(clientX, window.innerWidth - rect.width - margin);
+    const top = Math.min(clientY, window.innerHeight - rect.height - margin);
+
+    menu.style.left = `${Math.max(margin, left)}px`;
+    menu.style.top = `${Math.max(margin, top)}px`;
   }
 
   async function handleToggleKeyword(ruleId: string, enabled: boolean): Promise<void> {
@@ -506,6 +715,11 @@ namespace SpoilerShieldPopup {
     popupElements.toggle.disabled = busy;
     popupElements.deleteGroupCancel.disabled = busy;
     popupElements.deleteGroupConfirm.disabled = busy;
+    popupElements.keywordContextMenu
+      .querySelectorAll<HTMLButtonElement>("button")
+      .forEach((button) => {
+        button.disabled = busy;
+      });
     popupElements.groupsList
       .querySelectorAll<HTMLButtonElement>("button")
       .forEach((button) => {

@@ -211,6 +211,21 @@ storage.setRuleEnabled("rule-10", false)
     const finaleRule = settings.rules.find((rule) => rule.keyword === "Finale");
     assert.equal(settings.groups.some((group) => group.id === "shows"), false);
     assert.equal(finaleRule.groupId, "general");
+    return storage.addGroup("Games");
+  })
+  .then((settings) => {
+    const gamesGroup = settings.groups.find((group) => group.id === "games");
+    assert.equal(gamesGroup.name, "Games");
+    return storage.moveRulesToGroup(["rule-10", "rule-11"], "games");
+  })
+  .then((settings) => {
+    const duneRule = settings.rules.find((rule) => rule.id === "rule-10");
+    const erenRule = settings.rules.find((rule) => rule.id === "rule-11");
+    const nbaRule = settings.rules.find((rule) => rule.keyword === "NBA finals");
+
+    assert.equal(duneRule.groupId, "games");
+    assert.equal(erenRule.groupId, "games");
+    assert.equal(nbaRule.groupId, "sports");
     console.log("storage tests passed");
   })
   .catch((error) => {
