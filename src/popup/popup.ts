@@ -15,6 +15,7 @@ namespace SpoilerShieldPopup {
     statusDetail: HTMLElement;
     feedbackText: HTMLElement;
     keywordsCount: HTMLElement;
+    bulkSelectAll: HTMLInputElement;
     deleteGroupDialog: HTMLDivElement;
     deleteGroupMessage: HTMLParagraphElement;
     deleteGroupCancel: HTMLButtonElement;
@@ -67,6 +68,7 @@ namespace SpoilerShieldPopup {
       statusDetail: getRequiredElement<HTMLElement>("status-detail"),
       feedbackText: getRequiredElement<HTMLElement>("feedback-text"),
       keywordsCount: getRequiredElement<HTMLElement>("keywords-count"),
+      bulkSelectAll: getRequiredElement<HTMLInputElement>("bulk-select-all"),
       deleteGroupDialog: getRequiredElement<HTMLDivElement>("delete-group-dialog"),
       deleteGroupMessage: getRequiredElement<HTMLParagraphElement>("delete-group-message"),
       deleteGroupCancel: getRequiredElement<HTMLButtonElement>("delete-group-cancel"),
@@ -117,6 +119,14 @@ namespace SpoilerShieldPopup {
       clearKeywordSelection(popupElements);
     });
 
+    popupElements.bulkSelectAll.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    popupElements.bulkSelectAll.addEventListener("change", () => {
+      handleSelectAllKeywords(popupElements.bulkSelectAll.checked);
+    });
+
     popupElements.exportBackupButton.addEventListener("click", () => {
       void handleExportBackup(popupElements);
     });
@@ -133,7 +143,12 @@ namespace SpoilerShieldPopup {
     document.addEventListener("click", (event) => {
       const target = event.target;
 
-      if (!(target instanceof Node) || popupElements.bulkActions.contains(target)) {
+      if (
+        !(target instanceof HTMLElement) ||
+        popupElements.bulkActions.contains(target) ||
+        Boolean(target.closest(".keyword-chip")) ||
+        Boolean(target.closest(".select-all-control"))
+      ) {
         return;
       }
 
@@ -310,6 +325,7 @@ namespace SpoilerShieldPopup {
     renderGroups(popupElements, safeSettings.groups, safeSettings.rules);
     renderKeywords(popupElements, safeSettings.rules, safeSettings.groups);
     renderBulkActions(popupElements, safeSettings);
+    renderSelectAllControl(popupElements, safeSettings.rules);
   }
 
   function updateStatus(
@@ -435,6 +451,7 @@ namespace SpoilerShieldPopup {
   ): HTMLDivElement {
     const chip = document.createElement("div");
     const chipLeft = document.createElement("div");
+    const selectCheckbox = document.createElement("input");
     const chipIndex = document.createElement("span");
     const chipText = document.createElement("span");
     const chipGroup = document.createElement("span");
@@ -448,6 +465,9 @@ namespace SpoilerShieldPopup {
     chip.classList.toggle("keyword-chip-selected", selectedRuleIds.has(rule.id));
     chip.dataset.ruleId = rule.id;
     chipLeft.className = "chip-left";
+    selectCheckbox.className = "chip-select";
+    selectCheckbox.type = "checkbox";
+    selectCheckbox.checked = selectedRuleIds.has(rule.id);
     chipIndex.className = "chip-index";
     chipText.className = "chip-text";
     chipGroup.className = "chip-group";
@@ -458,6 +478,13 @@ namespace SpoilerShieldPopup {
     chipIndex.textContent = String(index + 1).padStart(2, "0");
     chipText.textContent = rule.keyword;
     chipGroup.textContent = group.name;
+    selectCheckbox.setAttribute("aria-label", `Select ${rule.keyword}`);
+    selectCheckbox.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+    selectCheckbox.addEventListener("change", () => {
+      handleKeywordSelectionChange(rule.id, selectCheckbox.checked);
+    });
     removeButton.setAttribute("aria-label", `Remove ${rule.keyword}`);
     removeButton.innerHTML = getCloseIconSvg();
     removeButton.addEventListener("click", () => {
@@ -472,7 +499,7 @@ namespace SpoilerShieldPopup {
       handleKeywordContextMenu(rule);
     });
 
-    chipLeft.append(chipIndex, chipText, chipGroup);
+    chipLeft.append(selectCheckbox, chipIndex, chipText, chipGroup);
     chipActions.append(ruleToggle, removeButton);
     chip.append(chipLeft, chipActions);
 
@@ -493,6 +520,36 @@ namespace SpoilerShieldPopup {
     });
 
     return button;
+  }
+
+  function handleKeywordSelectionChange(ruleId: string, selected: boolean): void {
+    if (!elements || !currentSettings) {
+      return;
+    }
+
+    if (selected) {
+      selectedRuleIds.add(ruleId);
+    } else {
+      selectedRuleIds.delete(ruleId);
+    }
+
+    renderSettings(elements, currentSettings);
+  }
+
+  function handleSelectAllKeywords(selected: boolean): void {
+    if (!elements || !currentSettings) {
+      return;
+    }
+
+    selectedRuleIds.clear();
+
+    if (selected) {
+      currentSettings.rules.forEach((rule) => {
+        selectedRuleIds.add(rule.id);
+      });
+    }
+
+    renderSettings(elements, currentSettings);
   }
 
   function handleKeywordContextMenu(rule: SpoilerShieldShared.SpoilerRule): void {
@@ -558,6 +615,18 @@ namespace SpoilerShieldPopup {
     popupElements.bulkGroupSelect.disabled = selectedCount === 0 || availableGroups.length === 0;
     popupElements.bulkMoveButton.disabled = selectedCount === 0 || availableGroups.length === 0;
     popupElements.bulkClearButton.disabled = selectedCount === 0;
+  }
+
+  function renderSelectAllControl(
+    popupElements: PopupElements,
+    rules: SpoilerShieldShared.SpoilerRule[]
+  ): void {
+    const selectedCount = rules.filter((rule) => selectedRuleIds.has(rule.id)).length;
+    const allSelected = rules.length > 0 && selectedCount === rules.length;
+
+    popupElements.bulkSelectAll.checked = allSelected;
+    popupElements.bulkSelectAll.indeterminate = selectedCount > 0 && !allSelected;
+    popupElements.bulkSelectAll.disabled = rules.length === 0;
   }
 
   async function handleMoveSelectedKeywords(groupId: string): Promise<void> {
@@ -735,6 +804,7 @@ namespace SpoilerShieldPopup {
     popupElements.deleteGroupConfirm.disabled = busy;
     popupElements.exportBackupButton.disabled = busy;
     popupElements.importBackupButton.disabled = busy;
+    popupElements.bulkSelectAll.disabled = busy || !currentSettings || currentSettings.rules.length === 0;
     popupElements.bulkGroupSelect.disabled = busy || selectedRuleIds.size === 0 || !hasBulkMoveTarget();
     popupElements.bulkMoveButton.disabled = busy || selectedRuleIds.size === 0 || !hasBulkMoveTarget();
     popupElements.bulkClearButton.disabled = busy || selectedRuleIds.size === 0;
@@ -744,9 +814,9 @@ namespace SpoilerShieldPopup {
         button.disabled = busy;
       });
     popupElements.keywordsList
-      .querySelectorAll<HTMLButtonElement>("button")
-      .forEach((button) => {
-        button.disabled = busy;
+      .querySelectorAll<HTMLButtonElement | HTMLInputElement>("button, input")
+      .forEach((control) => {
+        control.disabled = busy;
       });
   }
 

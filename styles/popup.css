@@ -549,6 +549,75 @@ button {
   margin-bottom: 0;
 }
 
+.keywords-header-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.select-all-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #666666;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.select-all-checkbox {
+  display: inline-grid;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  place-content: center;
+  border: 1px solid #333333;
+  border-radius: 4px;
+  appearance: none;
+  background: #111111;
+  color: #ffffff;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.select-all-checkbox::before {
+  width: 7px;
+  height: 7px;
+  content: "";
+  transform: scale(0);
+  transform-origin: center;
+  transition: transform 120ms ease;
+  clip-path: polygon(14% 44%, 0 59%, 42% 100%, 100% 19%, 84% 6%, 39% 69%);
+  background: currentColor;
+}
+
+.select-all-checkbox:checked,
+.select-all-checkbox:indeterminate {
+  border-color: #ff0000;
+  background: #ff0000;
+}
+
+.select-all-checkbox:checked::before,
+.select-all-checkbox:indeterminate::before {
+  transform: scale(1);
+}
+
+.select-all-checkbox:indeterminate::before {
+  height: 2px;
+  clip-path: none;
+}
+
+.select-all-checkbox:focus-visible {
+  outline: 2px solid rgba(255, 0, 0, 0.45);
+  outline-offset: 2px;
+}
+
 .bulk-actions[hidden] {
   display: none;
 }
@@ -778,11 +847,55 @@ button {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+}
+
+.chip-select {
+  display: inline-grid;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin: 0;
+  place-content: center;
+  border: 1px solid #333333;
+  border-radius: 4px;
+  appearance: none;
+  background: #111111;
+  color: #ffffff;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.chip-select::before {
+  width: 8px;
+  height: 8px;
+  content: "";
+  transform: scale(0);
+  transform-origin: center;
+  transition: transform 120ms ease;
+  clip-path: polygon(14% 44%, 0 59%, 42% 100%, 100% 19%, 84% 6%, 39% 69%);
+  background: currentColor;
+}
+
+.chip-select:checked {
+  border-color: #ff0000;
+  background: #ff0000;
+}
+
+.chip-select:checked::before {
+  transform: scale(1);
+}
+
+.chip-select:focus-visible {
+  outline: 2px solid rgba(255, 0, 0, 0.45);
+  outline-offset: 2px;
 }
 
 .chip-index {
-  min-width: 16px;
+  min-width: 14px;
   color: #4c4c4c;
   font-family: "Space Mono", Consolas, monospace;
   font-size: 10px;
@@ -1033,6 +1146,8 @@ button {
 .group-remove:disabled,
 .chip-remove:disabled,
 .chip-toggle:disabled,
+.chip-select:disabled,
+.select-all-checkbox:disabled,
 .confirm-cancel:disabled,
 .confirm-delete:disabled,
 .toggle input:disabled + .toggle-track {
