@@ -255,8 +255,8 @@ namespace SpoilerShieldPopup {
   function getShieldOffIconSvg(): string {
     return [
       '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">',
-      '<path d="M4 5.5L12 2L20 5.5V11.5C20 14.584 18.418 17.366 16.044 19.36M12 22C7.5 20.4 4 16.529 4 11.5V5.5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
-      '<path d="M3 3L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+      '<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/>',
+      '<path d="M17.5 6.5L6.5 17.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
       "</svg>"
     ].join("");
   }
