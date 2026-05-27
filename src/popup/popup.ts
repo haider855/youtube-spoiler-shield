@@ -210,30 +210,20 @@ namespace SpoilerShieldPopup {
     return chip;
   }
 
-  function createRuleToggle(rule: SpoilerShieldShared.SpoilerRule): HTMLLabelElement {
-    const label = document.createElement("label");
-    const input = document.createElement("input");
-    const track = document.createElement("span");
-    const thumb = document.createElement("span");
-    const labelText = document.createElement("span");
+  function createRuleToggle(rule: SpoilerShieldShared.SpoilerRule): HTMLButtonElement {
+    const button = document.createElement("button");
+    const nextEnabled = !rule.enabled;
 
-    label.className = "chip-toggle";
-    input.type = "checkbox";
-    input.checked = rule.enabled;
-    input.setAttribute("aria-label", `${rule.enabled ? "Pause" : "Resume"} ${rule.keyword}`);
-    track.className = "chip-toggle-track";
-    thumb.className = "chip-toggle-thumb";
-    labelText.className = "visually-hidden";
-    labelText.textContent = rule.enabled ? `Pause ${rule.keyword}` : `Resume ${rule.keyword}`;
-
-    input.addEventListener("change", () => {
-      void handleToggleKeyword(rule.id, input.checked);
+    button.className = "chip-toggle";
+    button.type = "button";
+    button.setAttribute("aria-label", `${rule.enabled ? "Pause" : "Resume"} ${rule.keyword}`);
+    button.setAttribute("title", rule.enabled ? "Pause keyword" : "Resume keyword");
+    button.innerHTML = rule.enabled ? getPauseIconSvg() : getPlayIconSvg();
+    button.addEventListener("click", () => {
+      void handleToggleKeyword(rule.id, nextEnabled);
     });
 
-    track.append(thumb);
-    label.append(labelText, input, track);
-
-    return label;
+    return button;
   }
 
   async function handleToggleKeyword(ruleId: string, enabled: boolean): Promise<void> {
@@ -277,11 +267,6 @@ namespace SpoilerShieldPopup {
       .forEach((button) => {
         button.disabled = busy;
       });
-    popupElements.keywordsList
-      .querySelectorAll<HTMLInputElement>("input")
-      .forEach((input) => {
-        input.disabled = busy;
-      });
   }
 
   function setFeedback(
@@ -304,6 +289,22 @@ namespace SpoilerShieldPopup {
     return [
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">',
       '<path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+      "</svg>"
+    ].join("");
+  }
+
+  function getPauseIconSvg(): string {
+    return [
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">',
+      '<path d="M8 5V19M16 5V19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
+      "</svg>"
+    ].join("");
+  }
+
+  function getPlayIconSvg(): string {
+    return [
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">',
+      '<path d="M8 5.5V18.5L18 12L8 5.5Z" fill="currentColor"/>',
       "</svg>"
     ].join("");
   }
