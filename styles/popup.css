@@ -74,6 +74,8 @@ button {
 
 .popup {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 340px;
   overflow: hidden;
   background: #0f0f0f;
@@ -247,42 +249,70 @@ button {
 .page-tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  padding: 10px 20px;
-  border-bottom: 1px solid #1e1e1e;
-  background: #0f0f0f;
+  min-height: 64px;
+  margin-top: 8px;
+  padding: 0 20px 7px;
+  border-top: 1px solid #262626;
+  background: #111111;
 }
 
 .page-tab {
+  position: relative;
   display: inline-flex;
-  height: 30px;
+  min-height: 56px;
   min-width: 0;
   align-items: center;
+  flex-direction: column;
   justify-content: center;
-  border: 1px solid transparent;
-  border-radius: 8px;
+  gap: 5px;
+  padding: 9px 0 4px;
+  border: 0;
+  border-radius: 0;
   background: transparent;
   color: #666666;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 500;
   line-height: 1;
   transition:
-    background 150ms ease,
-    border-color 150ms ease,
     color 150ms ease,
     opacity 150ms ease;
 }
 
 .page-tab:hover {
-  border-color: #2a2a2a;
-  background: #161616;
   color: #d4d4d4;
 }
 
 .page-tab.active {
-  border-color: #ff0000;
-  background: #ff0000;
-  color: #ffffff;
+  color: #ff0000;
+}
+
+.page-tab::before {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 22px;
+  height: 1px;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+  opacity: 0;
+  transform: translateX(-50%);
+}
+
+.page-tab.active::before {
+  opacity: 1;
+}
+
+.page-tab-icon {
+  flex: 0 0 auto;
+  color: currentColor;
+}
+
+.page-tab span {
+  overflow: hidden;
+  max-width: 76px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .page-tab:focus-visible {
@@ -292,6 +322,10 @@ button {
 
 .page-panel[hidden] {
   display: none;
+}
+
+.page-panels {
+  min-height: 0;
 }
 
 .section {
