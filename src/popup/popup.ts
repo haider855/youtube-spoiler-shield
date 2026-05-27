@@ -4,11 +4,14 @@ namespace SpoilerShieldPopup {
     input: HTMLInputElement;
     addButton: HTMLButtonElement;
     toggle: HTMLInputElement;
-    toggleState: HTMLElement;
+    statusBar: HTMLElement;
+    statusDot: HTMLElement;
     statusText: HTMLElement;
+    statusStrong: HTMLElement;
+    statusDetail: HTMLElement;
     feedbackText: HTMLElement;
-    keywordList: HTMLUListElement;
-    emptyState: HTMLElement;
+    keywordsCount: HTMLElement;
+    keywordsList: HTMLDivElement;
   };
 
   let elements: PopupElements | undefined;
@@ -33,13 +36,16 @@ namespace SpoilerShieldPopup {
     return {
       form: getRequiredElement<HTMLFormElement>("keyword-form"),
       input: getRequiredElement<HTMLInputElement>("keyword-input"),
-      addButton: getRequiredElement<HTMLButtonElement>("add-keyword-button"),
+      addButton: getRequiredElement<HTMLButtonElement>("add-btn"),
       toggle: getRequiredElement<HTMLInputElement>("protection-toggle"),
-      toggleState: getRequiredElement<HTMLElement>("toggle-state"),
+      statusBar: getRequiredElement<HTMLElement>("status-bar"),
+      statusDot: getRequiredElement<HTMLElement>("status-dot"),
       statusText: getRequiredElement<HTMLElement>("status-text"),
+      statusStrong: getRequiredElement<HTMLElement>("status-strong"),
+      statusDetail: getRequiredElement<HTMLElement>("status-detail"),
       feedbackText: getRequiredElement<HTMLElement>("feedback-text"),
-      keywordList: getRequiredElement<HTMLUListElement>("keyword-list"),
-      emptyState: getRequiredElement<HTMLElement>("empty-state")
+      keywordsCount: getRequiredElement<HTMLElement>("keywords-count"),
+      keywordsList: getRequiredElement<HTMLDivElement>("keywords-list")
     };
   }
 
@@ -77,6 +83,7 @@ namespace SpoilerShieldPopup {
       setFeedback(popupElements, "Keyword added.", "success");
     } catch (error) {
       renderSettings(popupElements, currentSettings);
+      shakeInput(popupElements);
       setFeedback(popupElements, getErrorMessage(error), "error");
     } finally {
       setBusy(popupElements, false);
@@ -129,39 +136,92 @@ namespace SpoilerShieldPopup {
     const keywordCount = safeSettings.rules.length;
 
     popupElements.toggle.checked = safeSettings.enabled;
-    popupElements.toggleState.textContent = safeSettings.enabled ? "On" : "Off";
-    popupElements.statusText.textContent = `Protection ${safeSettings.enabled ? "on" : "off"} - ${keywordCount} keyword(s) saved.`;
-    popupElements.emptyState.hidden = keywordCount > 0;
-    popupElements.keywordList.replaceChildren(
-      ...safeSettings.rules.map((rule) => createRuleListItem(rule))
+    updateStatus(popupElements, safeSettings.enabled, keywordCount);
+    renderKeywords(popupElements, safeSettings.rules);
+  }
+
+  function updateStatus(
+    popupElements: PopupElements,
+    isProtected: boolean,
+    keywordCount: number
+  ): void {
+    popupElements.statusDot.classList.toggle("off", !isProtected);
+    popupElements.statusText.classList.toggle("off", !isProtected);
+
+    if (isProtected) {
+      popupElements.statusStrong.textContent = "Active";
+      popupElements.statusDetail.textContent = ` - blocking ${keywordCount} keyword${keywordCount === 1 ? "" : "s"}`;
+    } else {
+      popupElements.statusStrong.textContent = "Paused";
+      popupElements.statusDetail.textContent = " - protection disabled";
+    }
+
+    popupElements.keywordsCount.textContent = keywordCount > 0 ? `${keywordCount} active` : "none";
+  }
+
+  function renderKeywords(
+    popupElements: PopupElements,
+    rules: SpoilerShieldShared.SpoilerRule[]
+  ): void {
+    if (rules.length === 0) {
+      popupElements.keywordsList.replaceChildren(createEmptyState());
+      return;
+    }
+
+    popupElements.keywordsList.replaceChildren(
+      ...rules.map((rule, index) => createRuleChip(rule, index))
     );
   }
 
-  function createRuleListItem(rule: SpoilerShieldShared.SpoilerRule): HTMLLIElement {
-    const listItem = document.createElement("li");
-    const keywordText = document.createElement("span");
+  function createRuleChip(
+    rule: SpoilerShieldShared.SpoilerRule,
+    index: number
+  ): HTMLDivElement {
+    const chip = document.createElement("div");
+    const chipLeft = document.createElement("div");
+    const chipIndex = document.createElement("span");
+    const chipText = document.createElement("span");
     const removeButton = document.createElement("button");
 
-    listItem.className = "keyword-item";
-    keywordText.className = "keyword-text";
-    keywordText.textContent = rule.keyword;
-    removeButton.className = "remove-keyword-button";
+    chip.className = "keyword-chip";
+    chip.dataset.ruleId = rule.id;
+    chipLeft.className = "chip-left";
+    chipIndex.className = "chip-index";
+    chipText.className = "chip-text";
+    removeButton.className = "chip-remove";
     removeButton.type = "button";
-    removeButton.textContent = "Remove";
+
+    chipIndex.textContent = String(index + 1).padStart(2, "0");
+    chipText.textContent = rule.keyword;
     removeButton.setAttribute("aria-label", `Remove ${rule.keyword}`);
+    removeButton.innerHTML = getCloseIconSvg();
     removeButton.addEventListener("click", () => {
       void handleRemoveKeyword(rule.id);
     });
 
-    listItem.append(keywordText, removeButton);
+    chipLeft.append(chipIndex, chipText);
+    chip.append(chipLeft, removeButton);
 
-    return listItem;
+    return chip;
+  }
+
+  function createEmptyState(): HTMLDivElement {
+    const emptyState = document.createElement("div");
+    const emptyText = document.createElement("span");
+
+    emptyState.className = "empty-state";
+    emptyState.innerHTML = getShieldOffIconSvg();
+    emptyText.textContent = "No keywords yet - add one above";
+    emptyState.append(emptyText);
+
+    return emptyState;
   }
 
   function setBusy(popupElements: PopupElements, busy: boolean): void {
+    popupElements.statusBar.setAttribute("aria-busy", String(busy));
     popupElements.addButton.disabled = busy;
     popupElements.toggle.disabled = busy;
-    popupElements.keywordList
+    popupElements.keywordsList
       .querySelectorAll<HTMLButtonElement>("button")
       .forEach((button) => {
         button.disabled = busy;
@@ -177,15 +237,41 @@ namespace SpoilerShieldPopup {
     popupElements.feedbackText.dataset.tone = tone;
   }
 
+  function shakeInput(popupElements: PopupElements): void {
+    popupElements.input.classList.add("error");
+    window.setTimeout(() => {
+      popupElements.input.classList.remove("error");
+    }, 400);
+  }
+
+  function getCloseIconSvg(): string {
+    return [
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">',
+      '<path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+      "</svg>"
+    ].join("");
+  }
+
+  function getShieldOffIconSvg(): string {
+    return [
+      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">',
+      '<path d="M4 5.5L12 2L20 5.5V11.5C20 14.584 18.418 17.366 16.044 19.36M12 22C7.5 20.4 4 16.529 4 11.5V5.5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+      '<path d="M3 3L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+      "</svg>"
+    ].join("");
+  }
+
   function getErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : "Something went wrong.";
   }
 
   initializePopup().catch((error: unknown) => {
-    const statusText = document.getElementById("status-text");
+    const statusStrong = document.getElementById("status-strong");
+    const statusDetail = document.getElementById("status-detail");
 
-    if (statusText) {
-      statusText.textContent = "Unable to load settings.";
+    if (statusStrong && statusDetail) {
+      statusStrong.textContent = "Error";
+      statusDetail.textContent = " - unable to load settings";
     }
 
     console.error("[YouTube Spoiler Shield] Failed to initialize popup.", error);
