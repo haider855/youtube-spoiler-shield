@@ -4,11 +4,26 @@ YouTube Spoiler Shield is a privacy-first Chrome extension that blurs YouTube vi
 
 It is built for avoiding spoilers from anime, sports, movies, games, shows, events, and any other topic you want to temporarily hide.
 
+## Screenshots
+
+### Popup
+
+| Keywords | Groups | Settings |
+| --- | --- | --- |
+| ![Keywords popup](docs/screenshots/popup-keywords.png) | ![Groups popup](docs/screenshots/popup-groups.png) | ![Settings popup](docs/screenshots/popup-settings.png) |
+
+### YouTube Blocking
+
+![Blocked YouTube search results](docs/screenshots/youtube-search-results.png)
+
+![Blocked YouTube sidebar recommendations](docs/screenshots/youtube-sidebar.png)
+
 ## Features
 
 - Blur YouTube videos that match your spoiler keywords.
 - Works across YouTube home, search results, watch-page recommendations, sidebar videos, and Shorts surfaces.
 - Detects dynamically loaded videos while scrolling.
+- Matches punctuation and spacing variants, such as `Spider-Man`, `Spider Man`, and `Spiderman`.
 - Add, remove, pause, and resume individual keywords.
 - Organize keywords into groups such as Anime, Sports, Movies, or custom groups.
 - Pause or resume whole keyword groups.
