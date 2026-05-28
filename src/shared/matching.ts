@@ -7,6 +7,10 @@ namespace SpoilerShieldShared {
       .trim();
   }
 
+  export function normalizeCompactText(value: string): string {
+    return normalizeText(value).replace(/\s+/g, "");
+  }
+
   export function createEmptyMatchResult(): MatchResult {
     return { matched: false };
   }
@@ -17,6 +21,7 @@ namespace SpoilerShieldShared {
     groups: SpoilerGroup[] = []
   ): MatchResult {
     const normalizedText = normalizeText(text);
+    const normalizedCompactText = normalizeCompactText(text);
     const groupsById = new Map(groups.map((group) => [group.id, group]));
 
     if (!normalizedText) {
@@ -29,12 +34,16 @@ namespace SpoilerShieldShared {
       }
 
       const normalizedKeyword = normalizeText(rule.keyword);
+      const normalizedCompactKeyword = normalizeCompactText(rule.keyword);
 
       if (!normalizedKeyword) {
         continue;
       }
 
-      if (normalizedText.includes(normalizedKeyword)) {
+      if (
+        normalizedText.includes(normalizedKeyword) ||
+        normalizedCompactText.includes(normalizedCompactKeyword)
+      ) {
         return {
           matched: true,
           keyword: rule.keyword,

@@ -46,6 +46,7 @@ function assertNoMatch(result) {
 
 assert.equal(matching.normalizeText("  EREN   final  scene  "), "eren final scene");
 assert.equal(matching.normalizeText("ending: explained; finale, death-scene"), "ending explained finale death scene");
+assert.equal(matching.normalizeCompactText("Spider-Man: no way home"), "spidermannowayhome");
 
 let result = matching.matchTextAgainstRules("Eren final scene explained", [
   createRule("rule-1", "Eren")
@@ -76,6 +77,16 @@ result = matching.matchTextAgainstRules("The ending; explained in detail", [
   createRule("rule-9", "ending explained")
 ]);
 assertMatch(result, "ending explained", "rule-9");
+
+result = matching.matchTextAgainstRules("Spider-Man trailer breakdown", [
+  createRule("rule-14", "Spiderman")
+]);
+assertMatch(result, "Spiderman", "rule-14");
+
+result = matching.matchTextAgainstRules("Spiderman trailer breakdown", [
+  createRule("rule-15", "Spider Man")
+]);
+assertMatch(result, "Spider Man", "rule-15");
 
 result = matching.matchTextAgainstRules("Eren final scene", [
   createRule("rule-4", "")
