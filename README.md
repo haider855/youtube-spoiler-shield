@@ -159,6 +159,18 @@ This project is an MVP Chrome extension.
 
 It focuses on reliable local spoiler blocking for YouTube with no tracking, no accounts, and no remote services.
 
+## Safety
+
+This extension is open source and can be inspected before installation.
+
+It only requests the permissions needed to work:
+- `storage` for saving keywords and settings locally.
+- `https://www.youtube.com/*` for detecting and blurring matching YouTube content.
+
+It does not request access to all websites, browsing history, cookies, downloads, or personal files.
+
+The release zip is attached to a tagged GitHub release. You can verify the downloaded file using the SHA256 hash shown by GitHub.
+
 ## Disclaimer
 
 YouTube Spoiler Shield is not affiliated with, endorsed by, sponsored by, or associated with YouTube or Google.
