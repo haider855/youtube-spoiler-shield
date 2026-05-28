@@ -45,7 +45,37 @@ The extension requests:
 
 No analytics, tracking, remote servers, or user accounts are used.
 
-## Installation For Local Testing
+## Installation
+
+### Option 1: Install From Release Zip
+
+1. Go to the latest GitHub release:
+
+   <https://github.com/haider855/youtube-spoiler-shield/releases/latest>
+
+2. Download:
+
+   ```text
+   youtube-spoiler-shield-v0.1.0.zip
+   ```
+
+3. Extract the zip file.
+
+4. Open Chrome and go to:
+
+   ```text
+   chrome://extensions
+   ```
+
+5. Turn on **Developer mode**.
+
+6. Click **Load unpacked**.
+
+7. Select the extracted folder that contains `manifest.json`.
+
+8. Open or refresh YouTube.
+
+### Option 2: Build From Source
 
 1. Install dependencies:
 
