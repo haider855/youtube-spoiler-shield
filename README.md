@@ -1,8 +1,32 @@
 # YouTube Spoiler Shield
 
-YouTube Spoiler Shield is a privacy-first Chrome extension that blurs YouTube videos, Shorts, search results, and recommendations when they match spoiler keywords you choose.
+YouTube Spoiler Shield is a privacy-first Chrome extension that blurs YouTube videos, Shorts, search results, and recommendations when they match spoiler keywords chosen by the user.
 
-It is built for avoiding spoilers from anime, sports, movies, games, shows, events, and any other topic you want to temporarily hide.
+## What It Does
+
+The extension lets users add spoiler keywords such as character names, team names, movie titles, game titles, or event names. When YouTube content matches one of those keywords, the video card is blurred and covered with a spoiler warning.
+
+Users can reveal blocked videos manually, pause individual keywords, organize keywords into groups, and back up their settings.
+
+## Why I Built It
+
+I built this project to solve a common problem: accidentally seeing spoilers on YouTube through titles, thumbnails, Shorts, and recommended videos.
+
+YouTube loads content dynamically, so a simple static page filter is not enough. This project gave me a practical way to work with Chrome extension APIs, dynamic DOM updates, local browser storage, and real-world UI behavior.
+
+## Key Features
+
+- Blur YouTube videos that match saved spoiler keywords.
+- Works across YouTube home, search results, watch-page recommendations, sidebar videos, and Shorts surfaces.
+- Detects dynamically loaded videos while scrolling.
+- Matches punctuation and spacing variants, such as `Spider-Man`, `Spider Man`, and `Spiderman`.
+- Add, remove, pause, and resume individual keywords.
+- Organize keywords into groups such as Anime, Sports, Movies, or custom groups.
+- Pause or resume whole keyword groups.
+- Bulk select keywords and move them between groups.
+- Reveal blocked videos manually.
+- Import and export a local backup of keywords and groups.
+- Stores all settings locally in the browser.
 
 ## Screenshots
 
@@ -18,32 +42,24 @@ It is built for avoiding spoilers from anime, sports, movies, games, shows, even
 
 ![Blocked YouTube sidebar recommendations](docs/screenshots/youtube-sidebar.png)
 
-## Features
+## Tech Stack
 
-- Blur YouTube videos that match your spoiler keywords.
-- Works across YouTube home, search results, watch-page recommendations, sidebar videos, and Shorts surfaces.
-- Detects dynamically loaded videos while scrolling.
-- Matches punctuation and spacing variants, such as `Spider-Man`, `Spider Man`, and `Spiderman`.
-- Add, remove, pause, and resume individual keywords.
-- Organize keywords into groups such as Anime, Sports, Movies, or custom groups.
-- Pause or resume whole keyword groups.
-- Bulk select keywords and move them between groups.
-- Reveal blocked videos manually when you choose.
-- Import and export a local backup of your keywords and groups.
-- Stores all settings locally in your browser.
+- TypeScript
+- Chrome Extension Manifest V3
+- Chrome Storage API
+- Chrome content scripts
+- MutationObserver
+- HTML
+- CSS
+- Node.js / npm
 
-## Privacy
+## How It Works
 
-YouTube Spoiler Shield does not collect, sell, transmit, or share your data.
+The extension injects a content script into YouTube pages. The content script scans video cards, Shorts, search results, and recommendation areas for text that could contain spoilers.
 
-Your spoiler keywords, groups, and extension settings are stored locally using Chrome extension storage. They do not leave your device.
+Saved keywords are loaded from Chrome local storage. Each video card is checked against the active keyword list. If a match is found, the extension applies a blur overlay and stores metadata on the card so it can update cleanly later.
 
-The extension requests:
-
-- `storage`: to save your keywords, groups, and settings locally.
-- `https://www.youtube.com/*`: to detect and blur matching YouTube content.
-
-No analytics, tracking, remote servers, or user accounts are used.
+YouTube updates pages dynamically without full reloads, so the extension also uses `MutationObserver` to watch for newly loaded content while scrolling or navigating between YouTube pages.
 
 ## Installation
 
@@ -111,27 +127,53 @@ No analytics, tracking, remote servers, or user accounts are used.
 4. Keep protection enabled.
 5. Browse YouTube normally.
 
-Matching videos will be blurred with a spoiler overlay. You can reveal a blocked video manually if you want to view it.
+Matching videos will be blurred with a spoiler overlay. Users can reveal a blocked video manually if they choose.
 
-## Keyword Groups
+## What I Learned
 
-Keyword groups help organize different spoiler topics.
+- How Chrome Extension Manifest V3 projects are structured.
+- Used Chrome content scripts to detect and modify live YouTube page elements.
+- How to store extension settings with the Chrome Storage API.
+- Used `MutationObserver` to handle dynamically loaded YouTube content after scrolling and navigation.
+- How to handle YouTube’s single-page navigation behavior.
+- How to design a popup UI for extension settings.
+- How to write matching logic that handles punctuation and spacing edge cases.
+- How to package and release a browser extension manually through GitHub.
 
-Examples:
+## Challenges
 
-- Anime
-- Sports
-- Movies
-- Games
-- TV Shows
+### Handling YouTube’s Dynamic UI
 
-Groups can be paused or resumed without deleting their keywords.
+YouTube does not always reload the page when users search, navigate, or scroll. New videos can appear after the extension has already scanned the page.
 
-## Backup And Restore
+To solve this, I added DOM observation so the extension can rescan new content as it appears.
 
-Use the Settings page in the extension popup to export or import your local settings.
+### Matching Keyword Variants
 
-This is useful before reinstalling Chrome, switching devices, or backing up a spoiler list.
+Simple string matching was not enough because spoilers can appear with punctuation or spacing differences. For example, a user may save `Spiderman`, but YouTube titles may use `Spider-Man`.
+
+I added normalized and compact matching so punctuation and spacing variants are detected more reliably.
+
+### Supporting Different YouTube Surfaces
+
+YouTube uses different markup for home videos, search results, Shorts, and sidebar recommendations. The extension needed card detection logic that could handle multiple layouts without blocking unrelated parts of the page.
+
+### Keeping The Extension Privacy-First
+
+The extension needed to work without accounts, analytics, or remote servers. All keyword data is stored locally, and matching happens in the browser.
+
+## Privacy
+
+YouTube Spoiler Shield does not collect, sell, transmit, or share user data.
+
+Spoiler keywords, groups, and extension settings are stored locally using Chrome extension storage. They do not leave the user’s device.
+
+The extension requests:
+
+- `storage`: to save keywords, groups, and settings locally.
+- `https://www.youtube.com/*`: to detect and blur matching YouTube content.
+
+No analytics, tracking, remote servers, or user accounts are used.
 
 ## Development
 
@@ -153,23 +195,23 @@ Watch TypeScript changes:
 npm run watch
 ```
 
-## Current Status
+## Future Improvements
 
-This project is an MVP Chrome extension.
+- Add an allowlist for trusted channels or videos.
+- Add configurable blur strength.
+- Add an option to hide only thumbnails or hide the full card.
+- Add Chrome Web Store publishing.
+- Add automated browser-based tests for YouTube page layouts.
 
-It focuses on reliable local spoiler blocking for YouTube with no tracking, no accounts, and no remote services.
+## Status
 
-## Safety
+This project is an MVP public release.
 
-This extension is open source and can be inspected before installation.
+Current release: `v0.1.0`
 
-It only requests the permissions needed to work:
-- `storage` for saving keywords and settings locally.
-- `https://www.youtube.com/*` for detecting and blurring matching YouTube content.
+## License
 
-It does not request access to all websites, browsing history, cookies, downloads, or personal files.
-
-The release zip is attached to a tagged GitHub release. You can verify the downloaded file using the SHA256 hash shown by GitHub.
+This project is licensed under the MIT License.
 
 ## Disclaimer
 
